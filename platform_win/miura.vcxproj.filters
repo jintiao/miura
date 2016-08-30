@@ -4,10 +4,27 @@
     <Filter Include="src">
       <UniqueIdentifier>{613e0fe2-917e-4491-bd82-8c902d0bd46d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="glew">
+      <UniqueIdentifier>{64a706fc-f7f6-4832-87e1-138c2c0884a2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\Game.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\3rd\glew\src\glew.c">
+      <Filter>glew</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\Game.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\GLHelper.h">
+      <Filter>src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

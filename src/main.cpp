@@ -1,4 +1,6 @@
-#include <GLFW/glfw3.h>
+#include "GLHelper.h"
+#include "Game.h"
+
 
 int main ()
 {
@@ -14,14 +16,24 @@ int main ()
 
 	glfwMakeContextCurrent (window);
 
-	glGetString (GL_VERSION);
+	GLenum err = glewInit ();
+	if (GLEW_OK != err)
+	{
+		glfwTerminate ();
+		return -1;
+	}
+
+	CGame game;
+	game.Init ();
 
 	while (!glfwWindowShouldClose (window))
 	{
-		glClear (GL_COLOR_BUFFER_BIT);
+		game.Update ();
 		glfwSwapBuffers (window);
 		glfwPollEvents ();
 	}
+
+	game.Release ();
 
 	glfwTerminate ();
 	return 0;
