@@ -1,4 +1,4 @@
-#include "GLHelper.h"
+#include "GLHeader.h"
 #include "Game.h"
 
 
@@ -8,20 +8,13 @@ int main ()
 		return -1;
 
 	GLFWwindow *window = glfwCreateWindow (1024, 768, "miura", NULL, NULL);
-	if (!window)
-	{
-		glfwTerminate ();
-		return -1;
-	}
+	if (!window) return -1;
 
 	glfwMakeContextCurrent (window);
 
-	GLenum err = glewInit ();
-	if (GLEW_OK != err)
-	{
-		glfwTerminate ();
-		return -1;
-	}
+    
+    GLenum code = glewInit ();
+	if (code != GLEW_OK) return -2;
 
 	CGame game;
 	game.Init ();

@@ -1,5 +1,5 @@
 #include "Game.h"
-#include "GLHelper.h"
+#include "GLHeader.h"
 
 
 void CGame::Init ()
