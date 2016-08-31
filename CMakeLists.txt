@@ -21,6 +21,10 @@ add_subdirectory(3rd/glfw)
 set(LINK_LIBS ${LINK_LIBS} glfw)
 
 
+# GLM
+set(INCLUDE_DIR ${INCLUDE_DIR} 3rd/glm)
+
+
 # OpenGL
 find_package(OpenGL REQUIRED)
 set(INCLUDE_DIR ${INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
@@ -34,7 +38,10 @@ project (${PROJECT_NAME})
 set(INCLUDE_DIR ${INCLUDE_DIR} src)
 
 ## source
-set(SRC_OCEAN src/Renderer.cpp src/Renderer.h src/OceanObject.cpp src/OceanObject.h src/WaveSimulator.cpp src/WaveSimulator.h)
+set(SRC_OCEAN src/Renderer.cpp src/Renderer.h
+				src/OceanObject.cpp src/OceanObject.h
+				src/WaveSimulator.cpp src/WaveSimulator.h
+				src/Camera.cpp src/Camera.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
 set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GLHeader.h)
 SOURCE_GROUP(boring FILES ${SRC_BORING})

@@ -1,19 +1,22 @@
 #include "Renderer.h"
+#include "Camera.h"
 #include "GLHeader.h"
 
 
-CRenderer::CRenderer ()
+CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam)
 {
-	GLuint VertexArrayID;
-	glGenVertexArrays (1, &VertexArrayID);
-	glBindVertexArray (VertexArrayID);
-
 	glClearColor (0.86f, 0.86f, 0.86f, 0.0f);
+    glViewport(0, 0, width, height);
+    //glEnable(GL_DEPTH_TEST);
+	//glDepthFunc(GL_LESS);
+    //glEnable(GL_CULL_FACE);
 }
 
 
-void CRenderer::Render ()
+void CRenderer::Update (float frameTime)
 {
 	glClear (GL_COLOR_BUFFER_BIT);
-	mOcean.Render ();
+
+    mOcean.Update (frameTime);
+	mOcean.Render (mCamera);
 }

@@ -1,4 +1,5 @@
 #include "OceanObject.h"
+#include "Camera.h"
 #include "GLHeader.h"
 
 #include <cassert>
@@ -21,7 +22,7 @@ COceanObject::COceanObject ()
 
 void COceanObject::InitBuffer ()
 {
-	GLsizei sizeX = 10, sizeZ = 10, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
+	GLsizei sizeX = 100, sizeZ = 100, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
 	float scaleX = 1.0f, scaleZ = 1.0f;
 
 	std::vector<OceanVertex> vertexData;
@@ -30,7 +31,7 @@ void COceanObject::InitBuffer ()
 	{
 		for (GLsizei x = 0; x < sizeX; x++)
 		{
-			vertexData.emplace_back (OceanVertex{ scaleX * x / sizeX, 0.0f, scaleZ * z / sizeZ });
+			vertexData.emplace_back (OceanVertex{ scaleX * x, 0.0f, scaleZ * z });
 		}
 	}
 
@@ -50,14 +51,21 @@ void COceanObject::InitBuffer ()
 		}
 	}
 	mIndiceCount = static_cast<decltype (mIndiceCount)> (indiceData.size ());
-
-	glGenBuffers (1, &mVertexbuffer);
-	glBindBuffer (GL_ARRAY_BUFFER, mVertexbuffer);
+    
+    
+	glGenVertexArrays (1, &mVao);
+	glGenBuffers (2, mVbo);
+    glBindVertexArray(mVao);
+    
+	glBindBuffer (GL_ARRAY_BUFFER, mVbo[0]);
 	glBufferData (GL_ARRAY_BUFFER, vertexData.size () * sizeof (decltype (vertexData)::value_type), vertexData.data (), GL_STATIC_DRAW);
+	glEnableVertexAttribArray (0);
+	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-	glGenBuffers (1, &mIndicebuffer);
-	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mIndicebuffer);
+	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mVbo[1]);
 	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (decltype (indiceData)::value_type), indiceData.data (), GL_STATIC_DRAW);
+    
+    glBindVertexArray(0);
 }
 
 
@@ -68,9 +76,9 @@ void COceanObject::InitShader ()
 	char const *vsSrc = "\n"
 		"#version 330 core \n"
 		"layout(location = 0) in vec3 vertexPosition_modelspace; \n"
+        "uniform mat4 MVP;"
 		"void main(){ \n"
-		"    gl_Position.xyz = vertexPosition_modelspace.xzy; \n"
-		"    gl_Position.w = 1.0; \n"
+		"    gl_Position = MVP * vec4(vertexPosition_modelspace,1); \n"
 		"} \n";
 
 	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
@@ -80,7 +88,7 @@ void COceanObject::InitShader ()
 	assert (result != GL_FALSE);
 
 	char const *psSrc = "\n"
-		"#version 330 core \n";
+		"#version 330 core \n"
 		"out vec3 color; \n"
 		"void main(){ \n"
 		"    color = vec3(1,0,1); \n"
@@ -98,6 +106,8 @@ void COceanObject::InitShader ()
 	glLinkProgram (mShaderProgram);
 	glGetShaderiv (mShaderProgram, GL_LINK_STATUS, &result);
 	assert (result != GL_FALSE);
+    
+    mUniform = glGetUniformLocation(mShaderProgram, "MVP");
 
 	glDetachShader (mShaderProgram, vs);
 	glDetachShader (mShaderProgram, ps);
@@ -109,25 +119,30 @@ void COceanObject::InitShader ()
 
 COceanObject::~COceanObject ()
 {
-	glDeleteBuffers (1, &mVertexbuffer);
-	glDeleteBuffers (1, &mIndicebuffer);
+	glDeleteBuffers (2, mVbo);
+    glDeleteVertexArrays(1, &mVao);
 	glDeleteProgram (mShaderProgram);
 }
 
 
-void COceanObject::Render ()
+void COceanObject::Update (float frameTime)
 {
-	//glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
+    mWaveSimulator.Update ();
+}
 
+
+void COceanObject::Render (const CCamera &camera)
+{
 	glUseProgram (mShaderProgram);
+    
+    glm::mat4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix () * mModelMatrix;
+    glUniformMatrix4fv(mUniform, 1, GL_FALSE, &mvp[0][0]);
 
-	glEnableVertexAttribArray (0);
-	glBindBuffer (GL_ARRAY_BUFFER, mVertexbuffer);
-	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
-	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mIndicebuffer);
+    glBindVertexArray(mVao);
+    glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_SHORT, nullptr);
-
-	glDisableVertexAttribArray (0);
+    glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+	//glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_SHORT, nullptr);
+    glBindVertexArray(0);
 }
