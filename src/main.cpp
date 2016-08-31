@@ -1,5 +1,5 @@
 #include "GLHeader.h"
-#include "Game.h"
+#include "Renderer.h"
 
 
 int main ()
@@ -7,26 +7,25 @@ int main ()
 	if (!glfwInit ())
 		return -1;
 
+	glfwWindowHint (GLFW_SAMPLES, 4);
+	glfwWindowHint (GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint (GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint (GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	GLFWwindow *window = glfwCreateWindow (1024, 768, "miura", NULL, NULL);
 	if (!window) return -1;
 
 	glfwMakeContextCurrent (window);
 
-    
-    GLenum code = glewInit ();
-	if (code != GLEW_OK) return -2;
+	if (glewInit () != GLEW_OK) return -2;
 
-	CGame game;
-	game.Init ();
+	CRenderer renderer;
 
 	while (!glfwWindowShouldClose (window))
 	{
-		game.Update ();
+		renderer.Render ();
 		glfwSwapBuffers (window);
 		glfwPollEvents ();
 	}
-
-	game.Release ();
 
 	glfwTerminate ();
 	return 0;

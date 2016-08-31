@@ -1,12 +1,11 @@
 cmake_minimum_required (VERSION 2.8)
 
 
-project (miura)
-
-
-set(INCLUDE_DIR src)
+# global variables
+set(PROJECT_NAME "miura")
+set(INCLUDE_DIR "")
 set(LINK_LIBS "")
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
+set(CMAKE_CXX_FLAGS "-std=c++11")
 
 
 # GLEW
@@ -29,10 +28,26 @@ set(LINK_LIBS ${LINK_LIBS} ${OPENGL_gl_LIBRARY})
 
 
 # miura
-set(SRC_GL 3rd/glew/src/glew.c src/GLHeader.h)
-SOURCE_GROUP(gl FILES ${SRC_GL})
-set(SRC_MAIN src/main.cpp src/Game.cpp src/Game.h )
-SOURCE_GROUP(src FILES ${SRC_MAIN})
-add_executable(miura ${SRC_MAIN} ${SRC_GL})
-target_link_libraries(miura ${LINK_LIBS})
+project (${PROJECT_NAME})
+
+## include
+set(INCLUDE_DIR ${INCLUDE_DIR} src)
+
+## source
+set(SRC_OCEAN src/Renderer.cpp src/Renderer.h src/OceanObject.cpp src/OceanObject.h src/WaveSimulator.cpp src/WaveSimulator.h)
+SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
+set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GLHeader.h)
+SOURCE_GROUP(boring FILES ${SRC_BORING})
+
+## build
+add_executable(${PROJECT_NAME} ${SRC_OCEAN} ${SRC_BORING})
+target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 include_directories(${INCLUDE_DIR})
+
+## compiler
+if (MSVC)
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W4 -EHsc")
+else()
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+endif (MSVC)
