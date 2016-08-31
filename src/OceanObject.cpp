@@ -22,16 +22,15 @@ COceanObject::COceanObject ()
 
 void COceanObject::InitBuffer ()
 {
-	GLsizei sizeX = 100, sizeZ = 100, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
-	float scaleX = 1.0f, scaleZ = 1.0f;
+	int sizeX = 100, sizeZ = 100, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
 
 	std::vector<OceanVertex> vertexData;
 	vertexData.reserve (size);
-	for (GLsizei z = 0; z < sizeZ; z++)
+	for (int z = 0; z < sizeZ; z++)
 	{
-		for (GLsizei x = 0; x < sizeX; x++)
+		for (int x = 0; x < sizeX; x++)
 		{
-			vertexData.emplace_back (OceanVertex{ scaleX * x, 0.0f, scaleZ * z });
+			vertexData.emplace_back (OceanVertex { 2.0f * x - sizeX, 0.0f, 2.0f * z - sizeZ });
 		}
 	}
 

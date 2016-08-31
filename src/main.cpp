@@ -18,20 +18,20 @@ void UpdateCamera (GLFWwindow *window, CCamera &camera, float deltaTime)
     if (glfwGetKey (window, GLFW_KEY_D) == GLFW_PRESS){
 		offsetH = 1;
 	}
-	else if (glfwGetKey( window, GLFW_KEY_A) == GLFW_PRESS){
+	else if (glfwGetKey (window, GLFW_KEY_A) == GLFW_PRESS){
 		offsetH = -1;
 	}
     
     if (glfwGetKey (window, GLFW_KEY_W) == GLFW_PRESS){
 		offsetV = 1;
 	}
-	else if (glfwGetKey( window, GLFW_KEY_S) == GLFW_PRESS){
+	else if (glfwGetKey (window, GLFW_KEY_S) == GLFW_PRESS){
 		offsetV = -1;
 	}
     float rotateH = (float)(FIXED_CURSOR_X - xpos);
     float rotateV = (float)(FIXED_CURSOR_Y - ypos);
     
-    camera.Update(deltaTime, offsetH, offsetV, rotateH, rotateV);
+    camera.Update(deltaTime, offsetH, offsetV, rotateH, rotateV, glfwGetKey (window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 }
 
 
@@ -63,7 +63,7 @@ int main ()
 	if (glewInit () != GLEW_OK) return -3;
     
 
-    CCamera camera (glm::radians(45.0f), float (width) / float (height), 0.1f, 1000.0f);
+    CCamera camera (glm::radians(60.0f), float (width) / float (height), 0.1f, 1000.0f);
 	CRenderer renderer (width, height, camera);
 
 
