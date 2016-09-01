@@ -11,7 +11,9 @@
 static const float g = 9.81f;
 
 
-CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed, float waveSizeMax) : mWindDirection (std::cosf (windAngle), std::sinf (windAngle)), mWindSpeed (windSpeed), mWaveSizeMax (waveSizeMax)
+CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed) :
+    mWindDirection (std::cosf (windAngle), std::sinf (windAngle)),
+    mWindSpeed (windSpeed)
 {
 	int size = mFFTSize * mFFTSize;
 	mLUTk.resize (size);
@@ -89,7 +91,8 @@ float CWaveSimulator::CalcPh (const glm::vec2 &k)
 
 void CWaveSimulator::Update (float currentTime)
 {
-	// wave height field, [Equation 19]
+    // wave height field, [Equation 19]
+
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
@@ -97,6 +100,7 @@ void CWaveSimulator::Update (float currentTime)
 			mHeightField[GridLookup (x, y)] = CalcH (currentTime, x, y);
 		}
 	}
+    
 	FFT2D (mHeightField);
 
 	for (int x = 0; x < mFFTSize; x++)
@@ -104,39 +108,17 @@ void CWaveSimulator::Update (float currentTime)
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = GridLookup (x, y);
-			auto &height = mHeightField[i];
-			height *= PowNeg1 (x + y) * mWaveSizeMax;
-			mHeightMap[i] = -height.real ();
+			auto &field = mHeightField[i];
+            
+            glm::vec2 xx = { (x - mFFTSize * 0.5f) * mWorldSize, (y - mFFTSize * 0.5f) * mWorldSize };
+            float theta = glm::dot (xx, mLUTk[i]);
+            
+            std::complex<float> ep { std::cosf (theta), std::sinf (theta) };
+            std::complex<float> h = field * ep;
+
+			mHeightMap[i] = h.real ();
 		}
 	}
-
-//	static int cccc = 0;
-//	if (cccc++ == 1)
-//	{
-//		float min = std::numeric_limits<float>::max ();
-//		float max = std::numeric_limits<float>::min ();
-//		for (auto &field : mHeightField) {
-//			float h = -field.real ();
-//			if (h > max) max = h;
-//			if (h < min) min = h;
-//		}
-//		float scale = 1 / (max - min);
-//
-//#define INT2CHAR_BIT(num, bit) (unsigned char)(((num) >> (bit)) & 0xff)
-//#define INT2CHAR(num) INT2CHAR_BIT((num),0), INT2CHAR_BIT((num),8), INT2CHAR_BIT((num),16), INT2CHAR_BIT((num),24)
-//		unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
-//		std::ofstream ofs ("height.bmp", std::ios_base::out | std::ios_base::binary);
-//		ofs.write ((char *)buf, sizeof (buf));
-//		for (auto &field : mHeightField) {
-//			float h = -field.real ();
-//			h = (h - min) * scale;
-//			buf[0] = (unsigned char)std::min (255, (int)(h * 255));
-//			buf[1] = (unsigned char)std::min (255, (int)(h * 255));
-//			buf[2] = (unsigned char)std::min (255, (int)(h * 255));
-//			buf[3] = 0;
-//			ofs.write ((char *)buf, 4);
-//		}
-//	}
 }
 
 
@@ -149,7 +131,8 @@ std::complex<float> CWaveSimulator::CalcH (float time, int x, int y)
 	auto &hNeg = mLUTh0[GridLookup (mFFTSize - 1 - x, mFFTSize - 1 - y)];
 
 	float freq = w * time;
-	std::complex<float> ep = (std::cosf (freq), std::sinf (freq));
+    // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = cos(x) - i * sin(x)
+	std::complex<float> ep { std::cosf (freq), std::sinf (freq) };
 	return (h * ep + std::conj (hNeg) * std::conj (ep));
 }
 
@@ -252,5 +235,33 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 		c2 = std::sqrtf ((1.0f - c1) * 0.5f);
 		c1 = std::sqrtf ((1.0f + c1) * 0.5f);
 	}
+}
+
+
+void CWaveSimulator::DebugSave (const char *path)
+{
+		float min = std::numeric_limits<float>::max ();
+		float max = std::numeric_limits<float>::min ();
+		for (auto &field : mHeightField) {
+			float h = -field.real ();
+			if (h > max) max = h;
+			if (h < min) min = h;
+		}
+		float scale = 1 / (max - min);
+
+#define INT2CHAR_BIT(num, bit) (unsigned char)(((num) >> (bit)) & 0xff)
+#define INT2CHAR(num) INT2CHAR_BIT((num),0), INT2CHAR_BIT((num),8), INT2CHAR_BIT((num),16), INT2CHAR_BIT((num),24)
+		unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
+		std::ofstream ofs ("height.bmp", std::ios_base::out | std::ios_base::binary);
+		ofs.write ((char *)buf, sizeof (buf));
+		for (auto &field : mHeightField) {
+			float h = -field.real ();
+			h = (h - min) * scale;
+			buf[0] = (unsigned char)std::min (255, (int)(h * 255));
+			buf[1] = (unsigned char)std::min (255, (int)(h * 255));
+			buf[2] = (unsigned char)std::min (255, (int)(h * 255));
+			buf[3] = 0;
+			ofs.write ((char *)buf, 4);
+		}
 }
 

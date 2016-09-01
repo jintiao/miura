@@ -11,9 +11,13 @@
 class CWaveSimulator
 {
 public:
-    CWaveSimulator (float windAngle, float windSpeed, float waveSizeMax);
+    CWaveSimulator (float windAngle, float windSpeed);
 
     void Update (float currentTime);
+    
+    const std::vector<float> &GetData () { return mHeightMap; }
+    
+    void DebugSave (const char *path);
 
 private:
 	glm::vec2 CalcK (int x, int y); // k vector
@@ -26,15 +30,15 @@ private:
 	void FFT1D (std::vector<float> &real, std::vector<float> &imag);
 
 	inline int GridLookup (int x, int y) { return y * mFFTSize + x; }
-	inline static int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
 
 private:
-	const int mFFTSize = 256; // N/M, must be power of 2
+	const int mFFTSize = 64; // N/M, must be power of 2
 	const int mFFTSizeLog = (int)std::log (mFFTSize);
 	const float mWorldSize = 100.0f; // Lx/Lz
-	float mWaveSizeMax;
-	glm::vec2 mWindDirection;
+
+    glm::vec2 mWindDirection;
 	float mWindSpeed;
+
 
 	std::vector<glm::vec2> mLUTk; // k vector look up table
 	std::vector<float> mLUTw; // frequency look up table

@@ -33,7 +33,7 @@ private:
     float mHorizontalAngle = 0.0f;
     float mVerticalAngle = -0.3f;
     
-    float mSpeedBoost = 5.0f;
-    float mSpeed = 3.0f; // meters / second
+    float mSpeedBoost = 10.0f;
+    float mSpeed = 5.0f; // meters / second
     float mRotateSpeed = 1.57f; // radians / second
 };
