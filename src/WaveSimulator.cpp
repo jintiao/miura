@@ -4,13 +4,18 @@
 #include <functional>
 #include <random>
 
+// for debug output
+#include <fstream>
+#include <climits>
+
 static const float g = 9.81f;
 
 
-CWaveSimulator::CWaveSimulator (float wind, float waveSizeMax) : mWind (std::cosf (wind), std::sinf (wind)), mWaveSizeMax (waveSizeMax)
+CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed, float waveSizeMax) : mWindDirection (std::cosf (windAngle), std::sinf (windAngle)), mWindSpeed (windSpeed), mWaveSizeMax (waveSizeMax)
 {
 	int size = mFFTSize * mFFTSize;
 	mLUTk.resize (size);
+	mLUTw.resize (size);
 	mLUTh0.resize (size);
 	mHeightField.resize (size);
 	mHeightMap.resize (size);
@@ -22,7 +27,8 @@ CWaveSimulator::CWaveSimulator (float wind, float waveSizeMax) : mWind (std::cos
 			int i = GridLookup (x, y);
 
 			auto &k = mLUTk[i];
-			k = CalcK ((float)x, (float)y);
+			k = CalcK (x, y);
+			mLUTw[i] = CalcW (k);
 			mLUTh0[i] = CalcH0 (k);
 		}
 	}
@@ -30,27 +36,35 @@ CWaveSimulator::CWaveSimulator (float wind, float waveSizeMax) : mWind (std::cos
 
 
 // k vector, two lines right below [Equation 19]
-glm::vec2 CWaveSimulator::CalcK (float x, float y)
+glm::vec2 CWaveSimulator::CalcK (int x, int y)
 {
-	static float pi = (float)M_PI;
-	static float pi2byworld = 2.0f * pi / mWorldSize;
-	static float halfSize = mFFTSize / 2.0f;
+	static const float pi = (float)M_PI;
+	static const float pi2byworld = 2.0f * pi / mWorldSize;
+	static const float halfSize = mFFTSize / 2.0f;
 
 	return { ((float)x - halfSize) * pi2byworld, ((float)y - halfSize) * pi2byworld };
+}
+
+
+// wave frequency, [Equation 14]
+float CWaveSimulator::CalcW (const glm::vec2 &k)
+{
+	return (std::sqrtf (glm::length (k) * g));
 }
 
 
 // Fourier amplitude, [Equation 25]
 std::complex<float> CWaveSimulator::CalcH0 (const glm::vec2 &k)
 {
-	static float invSqr2 = 1.0f / std::sqrtf (2.0f);
+	static const float invSqr2 = 1.0f / std::sqrtf (2.0f);
 
 	static std::default_random_engine generator;
 	static std::normal_distribution<float> distribution (0.0f, 1.0f);
 	static auto roll = std::bind (distribution, generator);
 
 	std::complex<float> e = { roll (), roll () };
-	return e * invSqr2 * std::sqrtf (CalcPh (k));
+	auto phk = CalcPh (k);
+	return (invSqr2 * std::sqrtf (phk) * e);
 }
 
 
@@ -59,21 +73,23 @@ float CWaveSimulator::CalcPh (const glm::vec2 &k)
 {
 	static const float A = 1.0f;
 
-	if (glm::length (k) == 0)
+	float k2 = glm::dot (k, k);
+	if (k2 == 0)
 		return 0.0f;
 
-	float k2 = glm::dot (k, k);
-	float w2 = glm::dot (mWind, mWind);
-	float L = w2 / g;
-	return (A * std::expf (-1.0f / (k2 * L * L)) * (std::powf (glm::dot (k, mWind), 2) / (k2 * w2)) / (k2 * k2));
+	float k4 = k2 * k2;
+	float L = mWindSpeed * mWindSpeed / g;
+	float L2 = L * L;
+	float kL2 = k2 * L2;
+	float kw = glm::dot (k, mWindDirection);
+	float kw2 = kw * kw;
+	return (A * (std::expf (-1.0f / kL2) / k4) * kw2);
 }
 
 
-#include <fstream>
-#include <climits>
-// [Equation 19]
 void CWaveSimulator::Update (float currentTime)
 {
+	// wave height field, [Equation 19]
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
@@ -82,6 +98,7 @@ void CWaveSimulator::Update (float currentTime)
 		}
 	}
 	FFT2D (mHeightField);
+
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
@@ -123,24 +140,21 @@ void CWaveSimulator::Update (float currentTime)
 }
 
 
+// Fourier amplitudes of the wave field realization at time t, [Equation 26]
 std::complex<float> CWaveSimulator::CalcH (float time, int x, int y)
 {
 	int i = GridLookup (x, y);
-	int iNeg = GridLookup (mFFTSize - 1 - x, mFFTSize - 1 - y);
-	auto &k = mLUTk[i];
+	float w = mLUTw[i];
 	auto &h = mLUTh0[i];
-	auto &hNeg = mLUTh0[iNeg];
+	auto &hNeg = mLUTh0[GridLookup (mFFTSize - 1 - x, mFFTSize - 1 - y)];
 
-	// [Equation 14]
-	float w = std::sqrtf (glm::length (k) * g);
-
-	// [Equation 26]
 	float freq = w * time;
 	std::complex<float> ep = (std::cosf (freq), std::sinf (freq));
 	return (h * ep + std::conj (hNeg) * std::conj (ep));
 }
 
 
+// reference: [1998, Paul Bourke]2 Dimensional FFT.
 void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 {
 	std::vector<float> real (mFFTSize);
@@ -182,10 +196,11 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 }
 
 
+// reference: [1993, Paul Bourke] DFT (Discrete Fourier Transform) FFT(Fast Fourier Transform)
 void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 {
 	long nn, i, i1, j, k, i2, l, l1, l2;
-	float c1, c2, fReal, fImag, t1, t2, u1, u2, z;
+	float c1, c2, t1, t2, u1, u2, z;
 
 	nn = mFFTSize;
 	i2 = nn >> 1;
@@ -194,12 +209,7 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 	{
 		if (i<j)
 		{
-			fReal = real[i];
-			fImag = imag[i];
-			real[i] = real[j];
-			imag[i] = imag[j];
-			real[j] = fReal;
-			imag[j] = fImag;
+			std::swap (real[i], real[j]);
 		}
 
 		k = i2;
@@ -212,7 +222,6 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 		j += k;
 	}
 
-	// FFT computation
 	c1 = -1.0f;
 	c2 = 0.0f;
 	l2 = 1;

@@ -13,7 +13,7 @@ struct OceanVertex
 };
 
 
-COceanObject::COceanObject () : mWaveSimulator (0, 200.0f)
+COceanObject::COceanObject () : mWaveSimulator (0, 15.0f, 200.0f)
 {
 	InitBuffer ();
 	InitShader ();
