@@ -31,13 +31,12 @@ void UpdateCamera (GLFWwindow *window, CCamera &camera, float deltaTime)
     float rotateH = (float)(FIXED_CURSOR_X - xpos);
     float rotateV = (float)(FIXED_CURSOR_Y - ypos);
     
-    camera.Update(deltaTime, offsetH, offsetV, rotateH, rotateV, glfwGetKey (window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+	camera.Update (deltaTime, CCamera::SUpdateParams (offsetH, offsetV, rotateH, rotateV, glfwGetKey (window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS));
 }
 
 
 int main ()
 {
-
 	if (!glfwInit ()) return -1;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -75,7 +74,7 @@ int main ()
         lastTime = currentTime;
         
         UpdateCamera (window, camera, deltaTime);
-		renderer.Update (deltaTime);
+		renderer.Update ((float)currentTime);
 
 		glfwSwapBuffers (window);
 		glfwPollEvents ();

@@ -1,33 +1,31 @@
 #include "Camera.h"
 
+#include <algorithm>
+#include <cmath>
+
 
 CCamera::CCamera (float fov, float ratio, float near, float far)
 {
     mProjectionMatrix = glm::perspective (fov, ratio, near, far);
-    Update (0, 0, 0, 0, 0, false);
+    Update (0, SUpdateParams ());
 }
 
 
-void CCamera::Update (float deltaTime, float offsetH, float offsetV, float rotateX, float rotateY, bool boost)
+void CCamera::Update (float deltaTime, SUpdateParams params)
 {
-    static glm::vec3 worldUp = { 0.0f, 1.0f, 0.0f };
+    static glm::vec3 DEFAULT_UP = { 0.0f, 1.0f, 0.0f };
+	static float ANGLE_MAX = (float)(M_PI / 2.0), ANGLE_MIN = -ANGLE_MAX;
 
-    mHorizontalAngle += mRotateSpeed * rotateX * deltaTime;
-	mVerticalAngle += mRotateSpeed * rotateY * deltaTime;
+    mHorizontalAngle += mRotateSpeed * params.rotateH * deltaTime;
+	mVerticalAngle += mRotateSpeed * params.rotateV * deltaTime;
+	mVerticalAngle = std::min (std::max (mVerticalAngle, ANGLE_MIN), ANGLE_MAX);
 
-	glm::vec3 forward (
-		std::cos(mVerticalAngle) * std::sin(mHorizontalAngle),
-		std::sin(mVerticalAngle),
-		std::cos(mVerticalAngle) * std::cos(mHorizontalAngle)
-	);
-    
-    glm::vec3 right = glm::cross (forward, worldUp);
-	
-    mPosition += right * mSpeed * offsetH * deltaTime * (boost ? mSpeedBoost : 1.0f);
-    mPosition += forward * mSpeed * offsetV * deltaTime * (boost ? mSpeedBoost : 1.0f);
-    
-	// Up vector
+	glm::vec3 forward (std::cosf (mVerticalAngle) * std::sinf (mHorizontalAngle), std::sinf (mVerticalAngle), std::cosf (mVerticalAngle) * std::cosf (mHorizontalAngle));
+    glm::vec3 right = glm::cross (forward, DEFAULT_UP);
 	glm::vec3 up = glm::cross (right, forward);
-    
+	
+    mPosition += right * mSpeed * params.offsetH * deltaTime * (params.boost ? mSpeedBoost : 1.0f);
+    mPosition += forward * mSpeed * params.offsetV * deltaTime * (params.boost ? mSpeedBoost : 1.0f);
+
     mViewMatrix = glm::lookAt (mPosition, mPosition + forward, up);
 }

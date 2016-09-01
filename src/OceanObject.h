@@ -11,7 +11,7 @@ public:
 	COceanObject ();
 	~COceanObject ();
 
-	void Update (float frameTime);
+	void Update (float currentTime);
 	void Render (const CCamera &camera);
     
     const glm::mat4 &GetModelMatrix () const { return mModelMatrix; }

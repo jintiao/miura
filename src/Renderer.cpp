@@ -13,10 +13,10 @@ CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam)
 }
 
 
-void CRenderer::Update (float frameTime)
+void CRenderer::Update (float currentTime)
 {
 	glClear (GL_COLOR_BUFFER_BIT);
 
-    mOcean.Update (frameTime);
+    mOcean.Update (currentTime);
 	mOcean.Render (mCamera);
 }

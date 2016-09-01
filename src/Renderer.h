@@ -10,7 +10,7 @@ class CRenderer
 public:
 	CRenderer (int width, int height, const CCamera &cam);
 
-	void Update (float frameTime);
+	void Update (float currentTime);
 
 private:
     const CCamera &mCamera;

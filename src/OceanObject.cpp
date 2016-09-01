@@ -13,7 +13,7 @@ struct OceanVertex
 };
 
 
-COceanObject::COceanObject ()
+COceanObject::COceanObject () : mWaveSimulator (0, 200.0f)
 {
 	InitBuffer ();
 	InitShader ();
@@ -124,9 +124,9 @@ COceanObject::~COceanObject ()
 }
 
 
-void COceanObject::Update (float frameTime)
+void COceanObject::Update (float currentTime)
 {
-    mWaveSimulator.Update ();
+    mWaveSimulator.Update (currentTime);
 }
 
 
@@ -137,11 +137,9 @@ void COceanObject::Render (const CCamera &camera)
     glm::mat4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix () * mModelMatrix;
     glUniformMatrix4fv(mUniform, 1, GL_FALSE, &mvp[0][0]);
 
-
     glBindVertexArray(mVao);
     glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_SHORT, nullptr);
     glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
-	//glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_SHORT, nullptr);
     glBindVertexArray(0);
 }

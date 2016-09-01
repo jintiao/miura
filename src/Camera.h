@@ -6,9 +6,20 @@
 class CCamera
 {
 public:
+	struct SUpdateParams
+	{
+		float offsetH;
+		float offsetV;
+		float rotateH;
+		float rotateV;
+		bool boost;
+		SUpdateParams (float oh = 0, float ov = 0, float rh = 0, float rv = 0, bool b = false) : offsetH (oh), offsetV (ov), rotateH (rh), rotateV (rv), boost (b) {}
+	};
+
+public:
     CCamera (float fov, float ratio, float near, float far);
 
-    void Update (float deltaTime, float offsetH, float offsetV, float rotateH, float rotateV, bool boost);
+    void Update (float deltaTime, SUpdateParams params);
     
     const glm::mat4 &GetViewMatrix () const { return mViewMatrix; }
     const glm::mat4 &GetProjectionMatrix () const { return mProjectionMatrix; }
