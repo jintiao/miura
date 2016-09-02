@@ -7,9 +7,10 @@
 #include <vector>
 
 
-COceanObject::COceanObject () : mWaveSimulator (0, 15.0f)
+COceanObject::COceanObject () : mWaveSimulator (0.39f, 310000.0f)
 {
-    mWaveSimulator.Update (0.11f);
+    mWaveSimulator.Update (102.11f);
+	mWaveSimulator.DebugSave ("height.bmp");
 
 	InitBuffer ();
 	InitShader ();
@@ -19,8 +20,7 @@ COceanObject::COceanObject () : mWaveSimulator (0, 15.0f)
 void COceanObject::InitBuffer ()
 {
     auto &heightmap = mWaveSimulator.GetData ();
-
-	int sizeX = 64, sizeZ = 64, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
+	int sizeX = 512, sizeZ = 512, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
     
 
 	std::vector<glm::vec3> vertexData;
@@ -29,10 +29,10 @@ void COceanObject::InitBuffer ()
 	{
 		for (int x = 0; x < sizeX; x++)
 		{
-			vertexData.emplace_back (2.0f * x - sizeX, heightmap[z * sizeX + x], 2.0f * z - sizeZ);
+			vertexData.emplace_back (x - sizeX * 0.5f, heightmap[z * sizeX + x], z - sizeZ * 0.5f);
 		}
 	}
-		
+
 	std::vector<glm::vec3> colorData;
 	colorData.reserve (size);
     float min = std::numeric_limits<float>::max ();
@@ -52,8 +52,8 @@ void COceanObject::InitBuffer ()
 		}
 	}
 
-	std::vector<unsigned short> indiceData;
-	indiceData.reserve (size * 3);
+	std::vector<unsigned int> indiceData;
+	indiceData.reserve (size * 6);
 	for (GLsizei z = 0; z < sizeZ - 1; z++)
 	{
 		for (GLsizei x = 0; x < sizeX - 1; x++)
@@ -69,13 +69,12 @@ void COceanObject::InitBuffer ()
 	}
 	mIndiceCount = static_cast<decltype (mIndiceCount)> (indiceData.size ());
     
-    
 	glGenVertexArrays (1, &mVao);
 	glGenBuffers (3, mVbo);
     glBindVertexArray(mVao);
     
 	glBindBuffer (GL_ARRAY_BUFFER, mVbo[0]);
-	glBufferData (GL_ARRAY_BUFFER, vertexData.size () * sizeof (decltype (vertexData)::value_type), vertexData.data (), GL_STATIC_DRAW);
+	glBufferData (GL_ARRAY_BUFFER, vertexData.size () * sizeof (vertexData[0]), vertexData.data (), GL_STATIC_DRAW);
 	glEnableVertexAttribArray (0);
 	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     
@@ -85,7 +84,7 @@ void COceanObject::InitBuffer ()
 	glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
 	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mVbo[1]);
-	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (decltype (indiceData)::value_type), indiceData.data (), GL_STATIC_DRAW);
+	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (indiceData[0]), indiceData.data (), GL_STATIC_DRAW);
     
     glBindVertexArray(0);
 }
@@ -151,7 +150,7 @@ COceanObject::~COceanObject ()
 }
 
 
-void COceanObject::Update (float currentTime)
+void COceanObject::Update (float /*currentTime*/)
 {
     //mWaveSimulator.Update (currentTime);
 }
@@ -166,7 +165,6 @@ void COceanObject::Render (const CCamera &camera)
 
     glBindVertexArray(mVao);
     //glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);
-	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_SHORT, nullptr);
-    //glPolygonMode (GL_FRONT_AND_BACK, GL_FILL);
+	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
 }

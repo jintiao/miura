@@ -35,5 +35,5 @@ private:
     
     float mSpeedBoost = 10.0f;
     float mSpeed = 5.0f; // meters / second
-    float mRotateSpeed = 1.57f; // radians / second
+    float mRotateSpeed = 1.0f; // radians / second
 };

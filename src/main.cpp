@@ -64,7 +64,7 @@ int main ()
 
     CCamera camera (glm::radians(60.0f), float (width) / float (height), 0.1f, 1000.0f);
 	CRenderer renderer (width, height, camera);
-
+	return 0;
 
     auto lastTime = glfwGetTime();
 	while (!glfwWindowShouldClose (window) && glfwGetKey (window, GLFW_KEY_ESCAPE) != GLFW_PRESS)

@@ -20,30 +20,45 @@ public:
     void DebugSave (const char *path);
 
 private:
-	glm::vec2 CalcK (int x, int y); // k vector
-	float CalcW (const glm::vec2 &k); // wave frequency
-	std::complex<float> CalcH0 (const glm::vec2 &k); // Fourier amplitude 0
-	float CalcPh (const glm::vec2 &k); // Phillips spectrum
-	std::complex<float> CalcH (float time, int x, int y); // Fourier amplitude
+	struct IntermediaData
+	{
+		glm::vec2 k; // k vector
+		float w; // wave frequency
+		std::complex<float> h0; // fourier amplitude of a wave height field
+	};
+
+private:
+	void InitDataLUT ();
+	glm::vec2 ComputeK (int x, int y);
+	float ComputeWaveFrequency (const IntermediaData &lookup);
+	std::complex<float> ComputeFourierAmplitude0 (const IntermediaData &lookup);
+	float ComputePhillipsSpectrum (const IntermediaData &lookup);
+
+	void ComputeFourierAmplitude (int x, int y, float t); // Fourier amplitude of the wave field realization at time t
 
 	void FFT2D (std::vector<std::complex<float>> &v);
 	void FFT1D (std::vector<float> &real, std::vector<float> &imag);
 
-	inline int GridLookup (int x, int y) { return y * mFFTSize + x; }
+	inline int IndexLookup (int x, int y) { return y * mFFTSize + x; }
 
 private:
-	const int mFFTSize = 64; // N/M, must be power of 2
-	const int mFFTSizeLog = (int)std::log (mFFTSize);
-	const float mWorldSize = 100.0f; // Lx/Lz
-
-    glm::vec2 mWindDirection;
+	glm::vec2 mWindDirection;
 	float mWindSpeed;
+	float mWaveMaxHeight = 30.0f;
 
+	const float g = 9.81f; // Gravity constant
+	const float pi = (float)M_PI; // 
 
-	std::vector<glm::vec2> mLUTk; // k vector look up table
-	std::vector<float> mLUTw; // frequency look up table
-	std::vector<std::complex<float>> mLUTh0; // h0(Fourier amplitude) look up table
-	std::vector<std::complex<float>> mHeightField; // Fourier amplitudes height field
+	const int mFFTSize = 512; // N/M, must be power of 2
+	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
+	const int mFFTSizeHalf = mFFTSize / 2;
+	const float mWorldSize = 1.0f; // Lx/Lz, 1000 meters
+	const float mPSpectrumConstant = 1.0f;
+	const float mMinimalWaveSize = mWorldSize / 100.0f; // waves length way smaller than the world size should be suppressed
+	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize; 
+
+	std::vector<IntermediaData> mDataLUT; // pre-computed data we need to use in every frame
+	std::vector<std::complex<float>> mHeightField; // fourier amplitude of the wave field realization at time t
 
 	std::vector<float> mHeightMap;
 };

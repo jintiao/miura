@@ -1,14 +1,9 @@
 #include "WaveSimulator.h"
 
 #include <algorithm>
+#include <climits>
 #include <functional>
 #include <random>
-
-// for debug output
-#include <fstream>
-#include <climits>
-
-static const float g = 9.81f;
 
 
 CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed) :
@@ -16,66 +11,62 @@ CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed) :
     mWindSpeed (windSpeed)
 {
 	int size = mFFTSize * mFFTSize;
-	mLUTk.resize (size);
-	mLUTw.resize (size);
-	mLUTh0.resize (size);
 	mHeightField.resize (size);
 	mHeightMap.resize (size);
 
+	mDataLUT.resize (size);
+	InitDataLUT ();
+}
+
+
+void CWaveSimulator::InitDataLUT ()
+{
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			int i = GridLookup (x, y);
-
-			auto &k = mLUTk[i];
-			k = CalcK (x, y);
-			mLUTw[i] = CalcW (k);
-			mLUTh0[i] = CalcH0 (k);
+			IntermediaData &lookup = mDataLUT[IndexLookup (x, y)];
+			lookup.k = ComputeK (x, y);
+			lookup.w = ComputeWaveFrequency (lookup);
+			lookup.h0 = ComputeFourierAmplitude0 (lookup);
 		}
 	}
 }
 
 
 // k vector, two lines right below [Equation 19]
-glm::vec2 CWaveSimulator::CalcK (int x, int y)
+glm::vec2 CWaveSimulator::ComputeK (int x, int y)
 {
-	static const float pi = (float)M_PI;
 	static const float pi2byworld = 2.0f * pi / mWorldSize;
-	static const float halfSize = mFFTSize / 2.0f;
-
-	return { ((float)x - halfSize) * pi2byworld, ((float)y - halfSize) * pi2byworld };
+	return { (x - mFFTSizeHalf) * pi2byworld, (y - mFFTSizeHalf) * pi2byworld };
 }
 
 
 // wave frequency, [Equation 14]
-float CWaveSimulator::CalcW (const glm::vec2 &k)
+float CWaveSimulator::ComputeWaveFrequency (const IntermediaData &lookup)
 {
-	return (std::sqrtf (glm::length (k) * g));
+	return std::sqrtf (glm::length (lookup.k) * g);
 }
 
 
-// Fourier amplitude, [Equation 25]
-std::complex<float> CWaveSimulator::CalcH0 (const glm::vec2 &k)
+// Fourier amplitude of a wave height field, [Equation 25]
+std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const IntermediaData &lookup)
 {
-	static const float invSqr2 = 1.0f / std::sqrtf (2.0f);
-
 	static std::default_random_engine generator;
 	static std::normal_distribution<float> distribution (0.0f, 1.0f);
 	static auto roll = std::bind (distribution, generator);
 
-	std::complex<float> e = { roll (), roll () };
-	auto phk = CalcPh (k);
-	return (invSqr2 * std::sqrtf (phk) * e);
+	static const float invSqr2 = 1.0f / std::sqrtf (2.0f);
+
+	std::complex<float> xi = { roll (), roll () };
+	return (invSqr2 * std::sqrtf (ComputePhillipsSpectrum (lookup)) * xi);
 }
 
 
 // Phillips spectrum, [Equation 23]
-float CWaveSimulator::CalcPh (const glm::vec2 &k)
+float CWaveSimulator::ComputePhillipsSpectrum (const IntermediaData &lookup)
 {
-	static const float A = 1.0f;
-
-	float k2 = glm::dot (k, k);
+	float k2 = glm::dot (lookup.k, lookup.k);
 	if (k2 == 0)
 		return 0.0f;
 
@@ -83,9 +74,15 @@ float CWaveSimulator::CalcPh (const glm::vec2 &k)
 	float L = mWindSpeed * mWindSpeed / g;
 	float L2 = L * L;
 	float kL2 = k2 * L2;
-	float kw = glm::dot (k, mWindDirection);
+	float kw = glm::dot (glm::normalize (lookup.k), mWindDirection);
 	float kw2 = kw * kw;
-	return (A * (std::expf (-1.0f / kL2) / k4) * kw2);
+
+	// [Equation 24]
+	float extraFactor = std::expf (k2 * mMinimalWaveSize2);
+	if (extraFactor == std::numeric_limits<float>::infinity ())
+		extraFactor = 0;
+
+	return (mPSpectrumConstant * (std::expf (-1.0f / kL2) / k4) * kw2 * extraFactor);
 }
 
 
@@ -95,49 +92,61 @@ void CWaveSimulator::Update (float currentTime)
 
 	for (int x = 0; x < mFFTSize; x++)
 	{
-		for (int y = 0; y < mFFTSize; y++)
+		for (int y = 0; y < mFFTSizeHalf; y++)
 		{
-			mHeightField[GridLookup (x, y)] = CalcH (currentTime, x, y);
+			ComputeFourierAmplitude (x, y, currentTime);
 		}
 	}
-    
 	FFT2D (mHeightField);
+
+	//float min = std::numeric_limits<float>::max ();
+	//float max = std::numeric_limits<float>::min ();
+	//for (auto &field : mHeightField) {
+	//	float h = field.real ();
+	//	if (h > max) max = h;
+	//	if (h < min) min = h;
+	//}
+	//float scale = mWaveMaxHeight / (max - min);
 
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			int i = GridLookup (x, y);
+			int i = IndexLookup (x, y);
+			auto &lookup = mDataLUT[i];
 			auto &field = mHeightField[i];
-            
-            glm::vec2 xx = { (x - mFFTSize * 0.5f) * mWorldSize, (y - mFFTSize * 0.5f) * mWorldSize };
-            float theta = glm::dot (xx, mLUTk[i]);
-            
-            std::complex<float> ep { std::cosf (theta), std::sinf (theta) };
-            std::complex<float> h = field * ep;
 
-			mHeightMap[i] = h.real ();
+            glm::vec2 vx = { (x - mFFTSizeHalf) * mWorldSize / mFFTSize, (y - mFFTSizeHalf) * mWorldSize / mFFTSize };
+			float theta = glm::dot (vx, lookup.k);
+            std::complex<float> ep = { std::cosf (theta), std::sinf (theta) };
+			field *= ep;
+
+			//mHeightMap[i] =  (field.real () - min) * scale;
+			mHeightMap[i] = field.real ();
 		}
 	}
 }
 
 
 // Fourier amplitudes of the wave field realization at time t, [Equation 26]
-std::complex<float> CWaveSimulator::CalcH (float time, int x, int y)
+void CWaveSimulator::ComputeFourierAmplitude (int x, int y, float t)
 {
-	int i = GridLookup (x, y);
-	float w = mLUTw[i];
-	auto &h = mLUTh0[i];
-	auto &hNeg = mLUTh0[GridLookup (mFFTSize - 1 - x, mFFTSize - 1 - y)];
+	int i = IndexLookup (x, y);
+	int iNeg = IndexLookup (mFFTSize - 1 - x, mFFTSize - 1 - y);
 
-	float freq = w * time;
-    // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = cos(x) - i * sin(x)
-	std::complex<float> ep { std::cosf (freq), std::sinf (freq) };
-	return (h * ep + std::conj (hNeg) * std::conj (ep));
+	auto &lookup = mDataLUT[i];
+
+	float wt = lookup.w * t;
+
+    // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = conj (exp(ix))
+	std::complex<float> ep = { std::cosf (wt), std::sinf (wt) };
+
+	mHeightField[i] = lookup.h0 * ep + std::conj (mDataLUT[iNeg].h0) * std::conj (ep);
+	mHeightField[iNeg] = std::conj (mHeightField[i]);
 }
 
 
-// reference: [1998, Paul Bourke]2 Dimensional FFT.
+// reverse 2d fft. reference: [1998, Paul Bourke]2 Dimensional FFT.
 void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 {
 	std::vector<float> real (mFFTSize);
@@ -147,7 +156,7 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 	{
 		for (int x = 0; x < mFFTSize; x++)
 		{
-			auto &curC = c[GridLookup (x, y)];
+			auto &curC = c[IndexLookup (x, y)];
 			real[x] = curC.real ();
 			imag[x] = curC.imag ();
 		}
@@ -156,7 +165,7 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 
 		for (int x = 0; x < mFFTSize; x++)
 		{
-			c[GridLookup (x, y)] = { real[x], imag[x] };
+			c[IndexLookup (x, y)] = { real[x], imag[x] };
 		}
 	}
 
@@ -164,7 +173,7 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			auto &curC = c[GridLookup (x, y)];
+			auto &curC = c[IndexLookup (x, y)];
 			real[y] = curC.real ();
 			imag[y] = curC.imag ();
 		}
@@ -173,13 +182,13 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			c[GridLookup (x, y)] = { real[y], imag[y] };
+			c[IndexLookup (x, y)] = { real[y], imag[y] };
 		}
 	}
 }
 
 
-// reference: [1993, Paul Bourke] DFT (Discrete Fourier Transform) FFT(Fast Fourier Transform)
+// reverse 1d fft. reference: [1993, Paul Bourke] DFT (Discrete Fourier Transform) FFT(Fast Fourier Transform)
 void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 {
 	long nn, i, i1, j, k, i2, l, l1, l2;
@@ -238,6 +247,7 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 }
 
 
+#include <fstream>
 void CWaveSimulator::DebugSave (const char *path)
 {
 		float min = std::numeric_limits<float>::max ();
@@ -252,7 +262,7 @@ void CWaveSimulator::DebugSave (const char *path)
 #define INT2CHAR_BIT(num, bit) (unsigned char)(((num) >> (bit)) & 0xff)
 #define INT2CHAR(num) INT2CHAR_BIT((num),0), INT2CHAR_BIT((num),8), INT2CHAR_BIT((num),16), INT2CHAR_BIT((num),24)
 		unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
-		std::ofstream ofs ("height.bmp", std::ios_base::out | std::ios_base::binary);
+		std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
 		ofs.write ((char *)buf, sizeof (buf));
 		for (auto &field : mHeightField) {
 			float h = -field.real ();
