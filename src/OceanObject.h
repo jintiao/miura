@@ -21,7 +21,7 @@ private:
 	void InitShader ();
 
 private:
-	GLuint mShaderProgram, mUniform, mVao, mVbo[3];
+	GLuint mShaderProgram, mUniform[2], mVao, mVbo[4], mHeightTexture;
 	GLsizei mIndiceCount;
 
     glm::mat4 mModelMatrix = glm::mat4 (1.0);

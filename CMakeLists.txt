@@ -38,12 +38,13 @@ project (${PROJECT_NAME})
 set(INCLUDE_DIR ${INCLUDE_DIR} src)
 
 ## source
-set(SRC_OCEAN src/Renderer.cpp src/Renderer.h
-				src/OceanObject.cpp src/OceanObject.h
+set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/WaveSimulator.cpp src/WaveSimulator.h
-				src/Camera.cpp src/Camera.h)
+				src/OceanShader.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
-set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GLHeader.h)
+set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GLHeader.h
+				src/Renderer.cpp src/Renderer.h
+				src/Camera.cpp src/Camera.h)
 SOURCE_GROUP(boring FILES ${SRC_BORING})
 
 ## build

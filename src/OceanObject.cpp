@@ -1,4 +1,5 @@
 #include "OceanObject.h"
+#include "OceanShader.h"
 #include "Camera.h"
 #include "GLHeader.h"
 
@@ -7,10 +8,9 @@
 #include <vector>
 
 
-COceanObject::COceanObject () : mWaveSimulator (0.0f, 31.0f)
+COceanObject::COceanObject () : mWaveSimulator (SWaveParams ())
 {
-    mWaveSimulator.Update (102.11f);
-	mWaveSimulator.DebugSave ("height.bmp");
+    Update (-1);
 
 	InitBuffer ();
 	InitShader ();
@@ -19,20 +19,28 @@ COceanObject::COceanObject () : mWaveSimulator (0.0f, 31.0f)
 
 void COceanObject::InitBuffer ()
 {
-    auto &heightmap = mWaveSimulator.GetData ();
+
 	int sizeX = 512, sizeZ = 512, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
     
 
 	std::vector<glm::vec3> vertexData;
 	vertexData.reserve (size);
+	std::vector<glm::vec2> uvData;
+	uvData.reserve (size);
+    
+    float stepu = 1.0f / (float)sizeX;
+    float stepv = 1.0f / (float)size;
+
 	for (int z = 0; z < sizeZ; z++)
 	{
 		for (int x = 0; x < sizeX; x++)
 		{
-			vertexData.emplace_back (x - sizeX * 0.5f, heightmap[z * sizeX + x], z - sizeZ * 0.5f);
+			vertexData.emplace_back (x - sizeX * 0.5f, 0, z - sizeZ * 0.5f);
+            uvData.emplace_back(x * stepu, z * stepv);
 		}
 	}
 
+    auto &heightmap = mWaveSimulator.GetData ();
 	std::vector<glm::vec3> colorData;
 	colorData.reserve (size);
     float min = std::numeric_limits<float>::max ();
@@ -70,7 +78,7 @@ void COceanObject::InitBuffer ()
 	mIndiceCount = static_cast<decltype (mIndiceCount)> (indiceData.size ());
     
 	glGenVertexArrays (1, &mVao);
-	glGenBuffers (3, mVbo);
+	glGenBuffers (4, mVbo);
     glBindVertexArray(mVao);
     
 	glBindBuffer (GL_ARRAY_BUFFER, mVbo[0]);
@@ -78,13 +86,38 @@ void COceanObject::InitBuffer ()
 	glEnableVertexAttribArray (0);
 	glVertexAttribPointer (0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
     
+	glBindBuffer (GL_ARRAY_BUFFER, mVbo[3]);
+	glBufferData (GL_ARRAY_BUFFER, uvData.size () * sizeof (uvData[0]), uvData.data (), GL_STATIC_DRAW);
+	glEnableVertexAttribArray (1);
+	glVertexAttribPointer (1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+    
 	glBindBuffer (GL_ARRAY_BUFFER, mVbo[2]);
 	glBufferData (GL_ARRAY_BUFFER, colorData.size () * sizeof (decltype (colorData)::value_type), colorData.data (), GL_STATIC_DRAW);
-	glEnableVertexAttribArray (1);
-	glVertexAttribPointer (1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glEnableVertexAttribArray (2);
+	glVertexAttribPointer (2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
 	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mVbo[1]);
 	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (indiceData[0]), indiceData.data (), GL_STATIC_DRAW);
+    
+    std::vector<float> hmap;
+    hmap.reserve (heightmap.size () * 3);
+    for (auto &c : heightmap)
+    {
+        hmap.emplace_back(c);
+        hmap.emplace_back(c);
+        hmap.emplace_back(c);
+    }
+    
+    
+    glGenTextures(1, &mHeightTexture);
+    glBindTexture(GL_TEXTURE_2D, mHeightTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_FLOAT, &hmap[0]);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     
     glBindVertexArray(0);
 }
@@ -94,30 +127,22 @@ void COceanObject::InitShader ()
 {
 	GLint result = GL_FALSE;
 
-	char const *vsSrc = "\n"
-		"#version 330 core \n"
-		"layout(location = 0) in vec3 vertexPosition_modelspace; \n"
-		"layout(location = 1) in vec3 vertexColor; \n"
-        "uniform mat4 MVP; \n"
-        "out vec3 fragmentColor; \n"
-		"void main(){ \n"
-		"    gl_Position = MVP * vec4(vertexPosition_modelspace,1); \n"
-		"    fragmentColor = vertexColor; \n"
-		"} \n";
 
 	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
 	glShaderSource (vs, 1, &vsSrc, NULL);
 	glCompileShader (vs);
+    
+    GLint bufflen = 0;
+    glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &bufflen);
+    if (bufflen > 1)
+    {
+        GLchar* log_string = new char[bufflen + 1];
+        glGetShaderInfoLog(vs, bufflen, 0, log_string);
+        delete []log_string;
+    }
 	glGetShaderiv (vs, GL_COMPILE_STATUS, &result);
 	assert (result != GL_FALSE);
 
-	char const *psSrc = "\n"
-		"#version 330 core \n"
-		"in vec3 fragmentColor; \n"
-		"out vec3 color; \n"
-		"void main(){ \n"
-		"    color = fragmentColor; \n"
-		"} \n";
 
 	GLuint ps = glCreateShader (GL_FRAGMENT_SHADER);
 	glShaderSource (ps, 1, &psSrc, NULL);
@@ -132,7 +157,8 @@ void COceanObject::InitShader ()
 	glGetShaderiv (mShaderProgram, GL_LINK_STATUS, &result);
 	assert (result != GL_FALSE);
     
-    mUniform = glGetUniformLocation(mShaderProgram, "MVP");
+    mUniform[0] = glGetUniformLocation(mShaderProgram, "MVP");
+    mUniform[1] = glGetUniformLocation(mShaderProgram, "heightMap");
 
 	glDetachShader (mShaderProgram, vs);
 	glDetachShader (mShaderProgram, ps);
@@ -144,15 +170,22 @@ void COceanObject::InitShader ()
 
 COceanObject::~COceanObject ()
 {
-	glDeleteBuffers (2, mVbo);
+	glDeleteBuffers (4, mVbo);
     glDeleteVertexArrays(1, &mVao);
 	glDeleteProgram (mShaderProgram);
+	glDeleteTextures(1, &mHeightTexture);
 }
 
 
-void COceanObject::Update (float /*currentTime*/)
+void COceanObject::Update (float currentTime)
 {
-    //mWaveSimulator.Update (currentTime);
+    if (currentTime < 0)
+    {
+        mWaveSimulator.Update (0.11f);
+        mWaveSimulator.DebugSave ("height.bmp");
+    }
+    
+    // mWaveSimulator.Update (currentTime);
 }
 
 
@@ -161,7 +194,11 @@ void COceanObject::Render (const CCamera &camera)
 	glUseProgram (mShaderProgram);
     
     glm::mat4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix () * mModelMatrix;
-    glUniformMatrix4fv(mUniform, 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(mUniform[0], 1, GL_FALSE, &mvp[0][0]);
+    
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, mHeightTexture);
+    glUniform1i(mUniform[1], 0);
 
     glBindVertexArray(mVao);
     //glPolygonMode (GL_FRONT_AND_BACK, GL_LINE);

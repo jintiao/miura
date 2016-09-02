@@ -7,11 +7,25 @@
 #include <vector>
 
 
+struct SWaveParams
+{
+	glm::vec2 windDirection;
+	float windSpeed;
+    float waveHeightMax;
+    SWaveParams (float angle = 0.0f, float speed = 31.0f, float height = 200.0f) :
+        windDirection (std::cosf (angle), std::sinf (angle)),
+        windSpeed (speed),
+        waveHeightMax (height)
+    {
+    }
+};
+
+
 // most calculation is base on [2001, Jerry Tessendorf]Simulating Ocean Water.
 class CWaveSimulator
 {
 public:
-    CWaveSimulator (float windAngle, float windSpeed);
+    CWaveSimulator (SWaveParams params);
 
     void Update (float currentTime);
     
@@ -44,8 +58,7 @@ private:
     inline int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
 
 private:
-	glm::vec2 mWindDirection;
-	float mWindSpeed;
+    SWaveParams mInitialParams;
 
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 

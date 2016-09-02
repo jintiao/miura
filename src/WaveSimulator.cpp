@@ -6,9 +6,7 @@
 #include <random>
 
 
-CWaveSimulator::CWaveSimulator (float windAngle, float windSpeed) :
-    mWindDirection (std::cosf (windAngle), std::sinf (windAngle)),
-    mWindSpeed (windSpeed)
+CWaveSimulator::CWaveSimulator (SWaveParams params) : mInitialParams (params)
 {
 	int size = mFFTSize * mFFTSize;
 	mHeightField.resize (size);
@@ -71,10 +69,10 @@ float CWaveSimulator::ComputePhillipsSpectrum (const glm::vec2 &k)
 		return 0.0f;
 
 	float k4 = k2 * k2;
-	float L = mWindSpeed * mWindSpeed / g;
+	float L = mInitialParams.windSpeed * mInitialParams.windSpeed / g;
 	float L2 = L * L;
 	float kL2 = k2 * L2;
-	float kw = glm::dot (glm::normalize (k), mWindDirection);
+	float kw = glm::dot (glm::normalize (k), mInitialParams.windDirection);
 	float kw2 = kw * kw;
 
 	// [Equation 24]
@@ -102,7 +100,7 @@ void CWaveSimulator::Update (float currentTime)
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = IndexLookup (x, y);
-			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * 100;
+			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * mInitialParams.waveHeightMax;
 		}
 	}
 }
