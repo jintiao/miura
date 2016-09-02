@@ -25,14 +25,15 @@ private:
 		glm::vec2 k; // k vector
 		float w; // wave frequency
 		std::complex<float> h0; // fourier amplitude of a wave height field
+		std::complex<float> h0cn; // conj(h0(-k))
 	};
 
 private:
 	void InitDataLUT ();
 	glm::vec2 ComputeK (int x, int y);
-	float ComputeWaveFrequency (const IntermediaData &lookup);
-	std::complex<float> ComputeFourierAmplitude0 (const IntermediaData &lookup);
-	float ComputePhillipsSpectrum (const IntermediaData &lookup);
+	float ComputeWaveFrequency (const glm::vec2 &k);
+	std::complex<float> ComputeFourierAmplitude0 (const glm::vec2 &k);
+	float ComputePhillipsSpectrum (const glm::vec2 &k);
 
 	void ComputeFourierAmplitude (int x, int y, float t); // Fourier amplitude of the wave field realization at time t
 
@@ -40,11 +41,11 @@ private:
 	void FFT1D (std::vector<float> &real, std::vector<float> &imag);
 
 	inline int IndexLookup (int x, int y) { return y * mFFTSize + x; }
+    inline int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
 
 private:
 	glm::vec2 mWindDirection;
 	float mWindSpeed;
-	float mWaveMaxHeight = 30.0f;
 
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 
@@ -54,7 +55,7 @@ private:
 	const int mFFTSizeHalf = mFFTSize / 2;
 	const float mWorldSize = 1.0f; // Lx/Lz, 1000 meters
 	const float mPSpectrumConstant = 1.0f;
-	const float mMinimalWaveSize = mWorldSize / 100.0f; // waves length way smaller than the world size should be suppressed
+	const float mMinimalWaveSize = mWorldSize * 0.001f; // waves length way smaller than the world size should be suppressed
 	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize; 
 
 	std::vector<IntermediaData> mDataLUT; // pre-computed data we need to use in every frame

@@ -27,8 +27,9 @@ void CWaveSimulator::InitDataLUT ()
 		{
 			IntermediaData &lookup = mDataLUT[IndexLookup (x, y)];
 			lookup.k = ComputeK (x, y);
-			lookup.w = ComputeWaveFrequency (lookup);
-			lookup.h0 = ComputeFourierAmplitude0 (lookup);
+			lookup.w = ComputeWaveFrequency (lookup.k);
+			lookup.h0 = ComputeFourierAmplitude0 (lookup.k);
+            lookup.h0cn = std::conj (ComputeFourierAmplitude0 (-lookup.k));
 		}
 	}
 }
@@ -43,14 +44,14 @@ glm::vec2 CWaveSimulator::ComputeK (int x, int y)
 
 
 // wave frequency, [Equation 14]
-float CWaveSimulator::ComputeWaveFrequency (const IntermediaData &lookup)
+float CWaveSimulator::ComputeWaveFrequency (const glm::vec2 &k)
 {
-	return std::sqrtf (glm::length (lookup.k) * g);
+	return std::sqrtf (glm::length (k) * g);
 }
 
 
 // Fourier amplitude of a wave height field, [Equation 25]
-std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const IntermediaData &lookup)
+std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const glm::vec2 &k)
 {
 	static std::default_random_engine generator;
 	static std::normal_distribution<float> distribution (0.0f, 1.0f);
@@ -58,15 +59,14 @@ std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const IntermediaDa
 
 	static const float invSqr2 = 1.0f / std::sqrtf (2.0f);
 
-	std::complex<float> xi = { roll (), roll () };
-	return (invSqr2 * std::sqrtf (ComputePhillipsSpectrum (lookup)) * xi);
+	return (invSqr2 * std::sqrtf (ComputePhillipsSpectrum (k)) * std::complex<float> (roll (), roll ()));
 }
 
 
 // Phillips spectrum, [Equation 23]
-float CWaveSimulator::ComputePhillipsSpectrum (const IntermediaData &lookup)
+float CWaveSimulator::ComputePhillipsSpectrum (const glm::vec2 &k)
 {
-	float k2 = glm::dot (lookup.k, lookup.k);
+	float k2 = glm::dot (k, k);
 	if (k2 == 0)
 		return 0.0f;
 
@@ -74,13 +74,11 @@ float CWaveSimulator::ComputePhillipsSpectrum (const IntermediaData &lookup)
 	float L = mWindSpeed * mWindSpeed / g;
 	float L2 = L * L;
 	float kL2 = k2 * L2;
-	float kw = glm::dot (glm::normalize (lookup.k), mWindDirection);
+	float kw = glm::dot (glm::normalize (k), mWindDirection);
 	float kw2 = kw * kw;
 
 	// [Equation 24]
 	float extraFactor = std::expf (k2 * mMinimalWaveSize2);
-	if (extraFactor == std::numeric_limits<float>::infinity ())
-		extraFactor = 0;
 
 	return (mPSpectrumConstant * (std::expf (-1.0f / kL2) / k4) * kw2 * extraFactor);
 }
@@ -92,37 +90,19 @@ void CWaveSimulator::Update (float currentTime)
 
 	for (int x = 0; x < mFFTSize; x++)
 	{
-		for (int y = 0; y < mFFTSizeHalf; y++)
+		for (int y = 0; y < mFFTSize; y++)
 		{
 			ComputeFourierAmplitude (x, y, currentTime);
 		}
 	}
 	FFT2D (mHeightField);
 
-	//float min = std::numeric_limits<float>::max ();
-	//float max = std::numeric_limits<float>::min ();
-	//for (auto &field : mHeightField) {
-	//	float h = field.real ();
-	//	if (h > max) max = h;
-	//	if (h < min) min = h;
-	//}
-	//float scale = mWaveMaxHeight / (max - min);
-
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = IndexLookup (x, y);
-			auto &lookup = mDataLUT[i];
-			auto &field = mHeightField[i];
-
-            glm::vec2 vx = { (x - mFFTSizeHalf) * mWorldSize / mFFTSize, (y - mFFTSizeHalf) * mWorldSize / mFFTSize };
-			float theta = glm::dot (vx, lookup.k);
-            std::complex<float> ep = { std::cosf (theta), std::sinf (theta) };
-			field *= ep;
-
-			//mHeightMap[i] =  (field.real () - min) * scale;
-			mHeightMap[i] = field.real ();
+			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * 100;
 		}
 	}
 }
@@ -132,8 +112,6 @@ void CWaveSimulator::Update (float currentTime)
 void CWaveSimulator::ComputeFourierAmplitude (int x, int y, float t)
 {
 	int i = IndexLookup (x, y);
-	int iNeg = IndexLookup (mFFTSize - 1 - x, mFFTSize - 1 - y);
-
 	auto &lookup = mDataLUT[i];
 
 	float wt = lookup.w * t;
@@ -141,8 +119,7 @@ void CWaveSimulator::ComputeFourierAmplitude (int x, int y, float t)
     // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = conj (exp(ix))
 	std::complex<float> ep = { std::cosf (wt), std::sinf (wt) };
 
-	mHeightField[i] = lookup.h0 * ep + std::conj (mDataLUT[iNeg].h0) * std::conj (ep);
-	mHeightField[iNeg] = std::conj (mHeightField[i]);
+	mHeightField[i] = lookup.h0 * ep + lookup.h0cn * std::conj (ep);
 }
 
 
@@ -192,7 +169,7 @@ void CWaveSimulator::FFT2D (std::vector<std::complex<float>> &c)
 void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 {
 	long nn, i, i1, j, k, i2, l, l1, l2;
-	float c1, c2, t1, t2, u1, u2, z;
+	float c1, c2,tx,ty, t1, t2, u1, u2, z;
 
 	nn = mFFTSize;
 	i2 = nn >> 1;
@@ -201,7 +178,12 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 	{
 		if (i<j)
 		{
-			std::swap (real[i], real[j]);
+			tx = real[i];
+            ty = imag[i];
+            real[i] = real[j];
+            imag[i] = imag[j];
+            real[j] = tx;
+            imag[j] = ty;
 		}
 
 		k = i2;

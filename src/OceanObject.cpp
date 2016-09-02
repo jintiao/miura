@@ -7,7 +7,7 @@
 #include <vector>
 
 
-COceanObject::COceanObject () : mWaveSimulator (0.39f, 310000.0f)
+COceanObject::COceanObject () : mWaveSimulator (0.0f, 31.0f)
 {
     mWaveSimulator.Update (102.11f);
 	mWaveSimulator.DebugSave ("height.bmp");
