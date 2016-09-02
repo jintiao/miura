@@ -27,4 +27,6 @@ private:
     glm::mat4 mModelMatrix = glm::mat4 (1.0);
 
 	CWaveSimulator mWaveSimulator;
+    
+    std::vector<float> mHeightMap;
 };

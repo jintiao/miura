@@ -12,7 +12,7 @@ struct SWaveParams
 	glm::vec2 windDirection;
 	float windSpeed;
     float waveHeightMax;
-    SWaveParams (float angle = 0.0f, float speed = 31.0f, float height = 200.0f) :
+    SWaveParams (float angle = 0.4f, float speed = 31.0f, float height = 200.0f) :
         windDirection (std::cosf (angle), std::sinf (angle)),
         windSpeed (speed),
         waveHeightMax (height)
@@ -29,7 +29,8 @@ public:
 
     void Update (float currentTime);
     
-    const std::vector<float> &GetData () { return mHeightMap; }
+    const std::vector<float> &GetHeightMap () { return mHeightMap; }
+    int GetMapSize () { return mFFTSize; }
     
     void DebugSave (const char *path);
 
@@ -63,7 +64,7 @@ private:
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 
 
-	const int mFFTSize = 512; // N/M, must be power of 2
+	const int mFFTSize = 64; // N/M, must be power of 2
 	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
 	const int mFFTSizeHalf = mFFTSize / 2;
 	const float mWorldSize = 1.0f; // Lx/Lz, 1000 meters

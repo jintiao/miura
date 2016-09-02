@@ -4,14 +4,13 @@
 #include "GLHeader.h"
 
 #include <cassert>
+#include <random>
 #include <string>
 #include <vector>
 
 
 COceanObject::COceanObject () : mWaveSimulator (SWaveParams ())
 {
-    Update (-1);
-
 	InitBuffer ();
 	InitShader ();
 }
@@ -19,9 +18,19 @@ COceanObject::COceanObject () : mWaveSimulator (SWaveParams ())
 
 void COceanObject::InitBuffer ()
 {
-
 	int sizeX = 512, sizeZ = 512, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
     
+
+    mHeightMap.resize (mWaveSimulator.GetMapSize () * mWaveSimulator.GetMapSize () * 3);
+    glGenTextures(1, &mHeightTexture);
+    glBindTexture(GL_TEXTURE_2D, mHeightTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetMapSize (), mWaveSimulator.GetMapSize (), 0, GL_RGB, GL_FLOAT, &mHeightMap[0]);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 
 	std::vector<glm::vec3> vertexData;
 	vertexData.reserve (size);
@@ -40,23 +49,18 @@ void COceanObject::InitBuffer ()
 		}
 	}
 
-    auto &heightmap = mWaveSimulator.GetData ();
+
+	static std::default_random_engine generator;
+	static std::uniform_real_distribution<float> distribution (0.0f, 1.0f);
+	static auto roll = std::bind (distribution, generator);
+    
 	std::vector<glm::vec3> colorData;
 	colorData.reserve (size);
-    float min = std::numeric_limits<float>::max ();
-    float max = std::numeric_limits<float>::min ();
-    for (auto &h : heightmap) {
-        if (h > max) max = h;
-        if (h < min) min = h;
-    }
-    float scale = 1 / (max - min);
     for (int z = 0; z < sizeZ; z++)
 	{
 		for (int x = 0; x < sizeX; x++)
 		{
-            auto h = heightmap[z * sizeX + x];
-            h = (h - min) * scale;
-			colorData.emplace_back (h, h, h);
+			colorData.emplace_back (roll (), roll (), roll ());
 		}
 	}
 
@@ -99,26 +103,7 @@ void COceanObject::InitBuffer ()
 	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mVbo[1]);
 	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (indiceData[0]), indiceData.data (), GL_STATIC_DRAW);
     
-    std::vector<float> hmap;
-    hmap.reserve (heightmap.size () * 3);
-    for (auto &c : heightmap)
-    {
-        hmap.emplace_back(c);
-        hmap.emplace_back(c);
-        hmap.emplace_back(c);
-    }
-    
-    
-    glGenTextures(1, &mHeightTexture);
-    glBindTexture(GL_TEXTURE_2D, mHeightTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 512, 512, 0, GL_RGB, GL_FLOAT, &hmap[0]);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    
-    
+
     glBindVertexArray(0);
 }
 
@@ -179,13 +164,19 @@ COceanObject::~COceanObject ()
 
 void COceanObject::Update (float currentTime)
 {
-    if (currentTime < 0)
-    {
-        mWaveSimulator.Update (0.11f);
-        mWaveSimulator.DebugSave ("height.bmp");
-    }
+    mWaveSimulator.Update (currentTime * 0.1);
+    auto &hmap = mWaveSimulator.GetHeightMap ();
     
-    // mWaveSimulator.Update (currentTime);
+    for (int i = 0; i < hmap.size (); i++)
+    {
+        mHeightMap[i * 3] = hmap[i];
+        mHeightMap[i * 3 + 1] = hmap[i];
+        mHeightMap[i * 3 + 2] = hmap[i];
+    }
+
+    glBindTexture(GL_TEXTURE_2D, mHeightTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetMapSize (), mWaveSimulator.GetMapSize (), 0, GL_RGB, GL_FLOAT, &mHeightMap[0]);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 
