@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <climits>
 #include <functional>
+#include <fstream>
 #include <random>
 
 
@@ -229,31 +230,30 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 }
 
 
-#include <fstream>
 void CWaveSimulator::DebugSave (const char *path)
 {
-		float min = std::numeric_limits<float>::max ();
-		float max = std::numeric_limits<float>::min ();
-		for (auto &field : mHeightField) {
-			float h = -field.real ();
-			if (h > max) max = h;
-			if (h < min) min = h;
-		}
-		float scale = 1 / (max - min);
+    float min = std::numeric_limits<float>::max ();
+    float max = std::numeric_limits<float>::min ();
+    for (auto &field : mHeightField) {
+        float h = -field.real ();
+        if (h > max) max = h;
+        if (h < min) min = h;
+    }
+    float scale = 1 / (max - min);
 
 #define INT2CHAR_BIT(num, bit) (unsigned char)(((num) >> (bit)) & 0xff)
 #define INT2CHAR(num) INT2CHAR_BIT((num),0), INT2CHAR_BIT((num),8), INT2CHAR_BIT((num),16), INT2CHAR_BIT((num),24)
-		unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
-		std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
-		ofs.write ((char *)buf, sizeof (buf));
-		for (auto &field : mHeightField) {
-			float h = -field.real ();
-			h = (h - min) * scale;
-			buf[0] = (unsigned char)std::min (255, (int)(h * 255));
-			buf[1] = (unsigned char)std::min (255, (int)(h * 255));
-			buf[2] = (unsigned char)std::min (255, (int)(h * 255));
-			buf[3] = 0;
-			ofs.write ((char *)buf, 4);
-		}
+    unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
+    std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
+    ofs.write ((char *)buf, sizeof (buf));
+    for (auto &field : mHeightField) {
+        float h = -field.real ();
+        h = (h - min) * scale;
+        buf[0] = (unsigned char)std::min (255, (int)(h * 255));
+        buf[1] = (unsigned char)std::min (255, (int)(h * 255));
+        buf[2] = (unsigned char)std::min (255, (int)(h * 255));
+        buf[3] = 0;
+        ofs.write ((char *)buf, 4);
+    }
 }
 

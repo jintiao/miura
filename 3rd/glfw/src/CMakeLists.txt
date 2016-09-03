@@ -78,8 +78,8 @@ target_compile_definitions(glfw PRIVATE
 
 # Enable a reasonable set of warnings (no, -Wextra is not reasonable)
 target_compile_options(glfw PRIVATE
-                       "$<$<C_COMPILER_ID:Clang>:-Wall>"
-                       "$<$<C_COMPILER_ID:GNU>:-Wall>")
+                       "$<$<C_COMPILER_ID:Clang>:-w>"
+                       "$<$<C_COMPILER_ID:GNU>:-w>")
 
 if (BUILD_SHARED_LIBS)
     if (WIN32)

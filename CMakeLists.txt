@@ -43,14 +43,17 @@ set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/OceanShader.h
 				src/Environment.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
-set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GlobalHeader.h
+set(SRC_RENDERING
 				src/Renderer.cpp src/Renderer.h
-				src/MyMath.cpp src/MyMath.h
 				src/Camera.cpp src/Camera.h)
+SOURCE_GROUP(rendering FILES ${SRC_RENDERING})
+set(SRC_BORING src/main.cpp src/GlobalHeader.h
+				src/MyMath.cpp src/MyMath.h
+				3rd/glew/src/glew.c)
 SOURCE_GROUP(boring FILES ${SRC_BORING})
 
 ## build
-add_executable(${PROJECT_NAME} ${SRC_OCEAN} ${SRC_BORING})
+add_executable(${PROJECT_NAME} ${SRC_OCEAN} ${SRC_RENDERING} ${SRC_BORING})
 target_link_libraries(${PROJECT_NAME} ${LINK_LIBS})
 include_directories(${INCLUDE_DIR})
 
