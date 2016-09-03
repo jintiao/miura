@@ -1,6 +1,7 @@
+#include "GlobalHeader.h"
+
 #include "Renderer.h"
 #include "Camera.h"
-#include "GLHeader.h"
 
 
 CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam)

@@ -1,7 +1,8 @@
+#include "GlobalHeader.h"
+
 #include "OceanObject.h"
 #include "OceanShader.h"
 #include "Camera.h"
-#include "GLHeader.h"
 
 #include <cassert>
 #include <random>
@@ -9,7 +10,7 @@
 #include <vector>
 
 
-COceanObject::COceanObject () : mWaveSimulator (SWaveParams ())
+COceanObject::COceanObject ()
 {
 	InitBuffer ();
 	InitShader ();
@@ -32,9 +33,9 @@ void COceanObject::InitBuffer ()
     glBindTexture(GL_TEXTURE_2D, 0);
 
 
-	std::vector<glm::vec3> vertexData;
+	std::vector<Math::Vector3> vertexData;
 	vertexData.reserve (size);
-	std::vector<glm::vec2> uvData;
+	std::vector<Math::Vector2> uvData;
 	uvData.reserve (size);
     
     float stepu = 1.0f / (float)sizeX;
@@ -54,7 +55,7 @@ void COceanObject::InitBuffer ()
 	static std::uniform_real_distribution<float> distribution (0.0f, 1.0f);
 	static auto roll = std::bind (distribution, generator);
     
-	std::vector<glm::vec3> colorData;
+	std::vector<Math::Vector3> colorData;
 	colorData.reserve (size);
     for (int z = 0; z < sizeZ; z++)
 	{
@@ -184,7 +185,7 @@ void COceanObject::Render (const CCamera &camera)
 {
 	glUseProgram (mShaderProgram);
     
-    glm::mat4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix () * mModelMatrix;
+    Math::Matrix4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix () * mModelMatrix;
     glUniformMatrix4fv(mUniform[0], 1, GL_FALSE, &mvp[0][0]);
     
     glActiveTexture(GL_TEXTURE0);

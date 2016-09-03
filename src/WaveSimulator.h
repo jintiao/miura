@@ -1,31 +1,16 @@
 #pragma once
 
-#include "GLHeader.h"
+#include "Environment.h"
 
-#include <cmath>
 #include <complex>
 #include <vector>
-
-
-struct SWaveParams
-{
-	glm::vec2 windDirection;
-	float windSpeed;
-    float waveHeightMax;
-    SWaveParams (float angle = 0.4f, float speed = 31.0f, float height = 200.0f) :
-        windDirection (std::cosf (angle), std::sinf (angle)),
-        windSpeed (speed),
-        waveHeightMax (height)
-    {
-    }
-};
 
 
 // most calculation is base on [2001, Jerry Tessendorf]Simulating Ocean Water.
 class CWaveSimulator
 {
 public:
-    CWaveSimulator (SWaveParams params);
+    CWaveSimulator (SEnvironmentParams params = SEnvironmentParams ());
 
     void Update (float currentTime);
     
@@ -37,7 +22,7 @@ public:
 private:
 	struct IntermediaData
 	{
-		glm::vec2 k; // k vector
+		Math::Vector2 k; // k vector
 		float w; // wave frequency
 		std::complex<float> h0; // fourier amplitude of a wave height field
 		std::complex<float> h0cn; // conj(h0(-k))
@@ -45,10 +30,10 @@ private:
 
 private:
 	void InitDataLUT ();
-	glm::vec2 ComputeK (int x, int y);
-	float ComputeWaveFrequency (const glm::vec2 &k);
-	std::complex<float> ComputeFourierAmplitude0 (const glm::vec2 &k);
-	float ComputePhillipsSpectrum (const glm::vec2 &k);
+	Math::Vector2 ComputeK (int x, int y);
+	float ComputeWaveFrequency (const Math::Vector2 &k);
+	std::complex<float> ComputeFourierAmplitude0 (const Math::Vector2 &k);
+	float ComputePhillipsSpectrum (const Math::Vector2 &k);
 
 	void ComputeFourierAmplitude (int x, int y, float t); // Fourier amplitude of the wave field realization at time t
 
@@ -59,7 +44,7 @@ private:
     inline int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
 
 private:
-    SWaveParams mInitialParams;
+    SEnvironmentParams mEnvironmentParams;
 
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 

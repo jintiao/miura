@@ -40,10 +40,12 @@ set(INCLUDE_DIR ${INCLUDE_DIR} src)
 ## source
 set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/WaveSimulator.cpp src/WaveSimulator.h
-				src/OceanShader.h)
+				src/OceanShader.h
+				src/Environment.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
-set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GLHeader.h
+set(SRC_BORING src/main.cpp 3rd/glew/src/glew.c src/GlobalHeader.h
 				src/Renderer.cpp src/Renderer.h
+				src/MyMath.cpp src/MyMath.h
 				src/Camera.cpp src/Camera.h)
 SOURCE_GROUP(boring FILES ${SRC_BORING})
 

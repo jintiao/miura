@@ -1,3 +1,5 @@
+#include "GlobalHeader.h"
+
 #include "WaveSimulator.h"
 
 #include <algorithm>
@@ -6,7 +8,7 @@
 #include <random>
 
 
-CWaveSimulator::CWaveSimulator (SWaveParams params) : mInitialParams (params)
+CWaveSimulator::CWaveSimulator (SEnvironmentParams params) : mEnvironmentParams (params)
 {
 	int size = mFFTSize * mFFTSize;
 	mHeightField.resize (size);
@@ -34,7 +36,7 @@ void CWaveSimulator::InitDataLUT ()
 
 
 // k vector, two lines right below [Equation 19]
-glm::vec2 CWaveSimulator::ComputeK (int x, int y)
+Math::Vector2 CWaveSimulator::ComputeK (int x, int y)
 {
 	static const float pi2byworld = 2.0f * pi / mWorldSize;
 	return { (x - mFFTSizeHalf) * pi2byworld, (y - mFFTSizeHalf) * pi2byworld };
@@ -42,14 +44,14 @@ glm::vec2 CWaveSimulator::ComputeK (int x, int y)
 
 
 // wave frequency, [Equation 14]
-float CWaveSimulator::ComputeWaveFrequency (const glm::vec2 &k)
+float CWaveSimulator::ComputeWaveFrequency (const Math::Vector2 &k)
 {
-	return std::sqrtf (glm::length (k) * g);
+	return std::sqrtf (Math::Length (k) * g);
 }
 
 
 // Fourier amplitude of a wave height field, [Equation 25]
-std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const glm::vec2 &k)
+std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const Math::Vector2 &k)
 {
 	static std::default_random_engine generator;
 	static std::normal_distribution<float> distribution (0.0f, 1.0f);
@@ -62,17 +64,17 @@ std::complex<float> CWaveSimulator::ComputeFourierAmplitude0 (const glm::vec2 &k
 
 
 // Phillips spectrum, [Equation 23]
-float CWaveSimulator::ComputePhillipsSpectrum (const glm::vec2 &k)
+float CWaveSimulator::ComputePhillipsSpectrum (const Math::Vector2 &k)
 {
-	float k2 = glm::dot (k, k);
+	float k2 = Math::Dot (k, k);
 	if (k2 == 0)
 		return 0.0f;
 
 	float k4 = k2 * k2;
-	float L = mInitialParams.windSpeed * mInitialParams.windSpeed / g;
+	float L = mEnvironmentParams.windSpeed * mEnvironmentParams.windSpeed / g;
 	float L2 = L * L;
 	float kL2 = k2 * L2;
-	float kw = glm::dot (glm::normalize (k), mInitialParams.windDirection);
+	float kw = Math::Dot (Math::Normalize (k), mEnvironmentParams.windDirection);
 	float kw2 = kw * kw;
 
 	// [Equation 24]
@@ -100,7 +102,7 @@ void CWaveSimulator::Update (float currentTime)
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = IndexLookup (x, y);
-			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * mInitialParams.waveHeightMax;
+			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * mEnvironmentParams.waveHeightMax;
 		}
 	}
 }
