@@ -14,20 +14,35 @@ public:
 
 	void Update (float currentTime);
 	void Render (const CCamera &camera);
-    
-    const Math::Matrix4 &GetModelMatrix () const { return mModelMatrix; }
 
 private:
 	void InitBuffer ();
 	void InitShader ();
 
 private:
-	GLuint mShaderProgram, mUniform[2], mVao, mVbo[4], mHeightTexture;
+    enum VertexBufferType
+    {
+        Position,
+        UV,
+        Color,
+        Indice,
+        BufferTypeMax,
+    };
+    
+    enum UniformType
+    {
+        Mvp,
+        Mv,
+        Mvn,
+        WaveTexture,
+        UniformMax,
+    };
+
+private:
+	GLuint mShaderProgram, mUniform[UniformType::UniformMax];
+    GLuint mVao, mVbo[VertexBufferType::BufferTypeMax];
+    GLuint mWaveTexture;
 	GLsizei mIndiceCount;
 
-    Math::Matrix4 mModelMatrix = Math::Matrix4 (1.0);
-
 	CWaveSimulator mWaveSimulator;
-    
-    std::vector<float> mHeightMap;
 };

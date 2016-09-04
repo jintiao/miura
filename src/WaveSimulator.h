@@ -14,13 +14,13 @@ public:
 
     void Update (float currentTime);
     
-    const std::vector<float> &GetHeightMap () { return mHeightMap; }
-    int GetMapSize () { return mFFTSize; }
+    const void *GetDisplacementData () { return (void *)mDisplacementData.data (); }
+    int GetDataSize () { return mFFTSize; }
     
     void DebugSave (const char *path);
 
 private:
-	struct IntermediaData
+	struct CacheData
 	{
 		Math::Vector2 k; // k vector
 		float w; // wave frequency
@@ -57,8 +57,8 @@ private:
 	const float mMinimalWaveSize = mWorldSize * 0.001f; // waves length way smaller than the world size should be suppressed
 	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize; 
 
-	std::vector<IntermediaData> mDataLUT; // pre-computed data we need to use in every frame
+	std::vector<CacheData> mDataLUT; // pre-computed data we need to use in every frame
 	std::vector<std::complex<float>> mHeightField; // fourier amplitude of the wave field realization at time t
 
-	std::vector<float> mHeightMap;
+	std::vector<Math::Vector3> mDisplacementData;
 };

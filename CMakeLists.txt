@@ -40,7 +40,7 @@ set(INCLUDE_DIR ${INCLUDE_DIR} src)
 ## source
 set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/WaveSimulator.cpp src/WaveSimulator.h
-				src/OceanShader.h
+				src/OceanShader.cpp
 				src/Environment.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
 set(SRC_RENDERING

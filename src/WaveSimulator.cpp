@@ -13,7 +13,7 @@ CWaveSimulator::CWaveSimulator (SEnvironmentParams params) : mEnvironmentParams 
 {
 	int size = mFFTSize * mFFTSize;
 	mHeightField.resize (size);
-	mHeightMap.resize (size);
+	mDisplacementData.resize (size);
 
 	mDataLUT.resize (size);
 	InitDataLUT ();
@@ -26,7 +26,7 @@ void CWaveSimulator::InitDataLUT ()
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			IntermediaData &lookup = mDataLUT[IndexLookup (x, y)];
+			CacheData &lookup = mDataLUT[IndexLookup (x, y)];
 			lookup.k = ComputeK (x, y);
 			lookup.w = ComputeWaveFrequency (lookup.k);
 			lookup.h0 = ComputeFourierAmplitude0 (lookup.k);
@@ -103,7 +103,9 @@ void CWaveSimulator::Update (float currentTime)
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = IndexLookup (x, y);
-			mHeightMap[i] = mHeightField[i].real () * PowNeg1 (x + y) * mEnvironmentParams.waveHeightMax;
+            mDisplacementData[i].x = 0;
+			mDisplacementData[i].y = mHeightField[i].real () * PowNeg1 (x + y) * mEnvironmentParams.waveHeightMax;
+            mDisplacementData[i].z = 0;
 		}
 	}
 }

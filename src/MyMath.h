@@ -31,4 +31,8 @@ float Length (const Vector2 &v);
 
 Vector2 Normalize (const Vector2 &v);
 
+Matrix4 Invert (const Matrix4 &m);
+
+Matrix4 Transpose (const Matrix4 &m);
+
 } // namespace Math
