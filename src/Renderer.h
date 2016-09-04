@@ -11,6 +11,8 @@ public:
 	CRenderer (int width, int height, const CCamera &cam);
 
 	void Update (float currentTime);
+    
+    void DebugSave (const char *filename);
 
 private:
     const CCamera &mCamera;

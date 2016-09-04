@@ -236,8 +236,8 @@ void CWaveSimulator::DebugSave (const char *path)
 {
     float min = std::numeric_limits<float>::max ();
     float max = std::numeric_limits<float>::min ();
-    for (auto &field : mHeightField) {
-        float h = -field.real ();
+    for (auto &displacement : mDisplacementData) {
+        float h = displacement.y;
         if (h > max) max = h;
         if (h < min) min = h;
     }
@@ -248,8 +248,8 @@ void CWaveSimulator::DebugSave (const char *path)
     unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
     std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
     ofs.write ((char *)buf, sizeof (buf));
-    for (auto &field : mHeightField) {
-        float h = -field.real ();
+    for (auto &displacement : mDisplacementData) {
+        float h = displacement.y;
         h = (h - min) * scale;
         buf[0] = (unsigned char)std::min (255, (int)(h * 255));
         buf[1] = (unsigned char)std::min (255, (int)(h * 255));

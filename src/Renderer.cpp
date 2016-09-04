@@ -21,3 +21,9 @@ void CRenderer::Update (float currentTime)
     mOcean.Update (currentTime);
 	mOcean.Render (mCamera);
 }
+
+
+void CRenderer::DebugSave (const char *path)
+{
+    mOcean.DebugSave (path);
+}

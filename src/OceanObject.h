@@ -14,6 +14,8 @@ public:
 
 	void Update (float currentTime);
 	void Render (const CCamera &camera);
+    
+    void DebugSave (const char *filename);
 
 private:
 	void InitBuffer ();
@@ -24,7 +26,6 @@ private:
     {
         Position,
         UV,
-        Color,
         Indice,
         BufferTypeMax,
     };

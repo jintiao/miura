@@ -6,7 +6,6 @@ const char *vsSrc = R"(
 
 layout(location = 0) in vec3 vertexPos;
 layout(location = 1) in vec2 vertexUv;
-layout(location = 2) in vec3 vertexColor;
 
 uniform mat4 mvp;
 uniform mat4 mv;

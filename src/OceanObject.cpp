@@ -35,7 +35,7 @@ void COceanObject::InitBuffer ()
 	uvData.reserve (size);
     
     float stepu = 1.0f / (float)sizeX;
-    float stepv = 1.0f / (float)size;
+    float stepv = 1.0f / (float)sizeZ;
 
 	for (int z = 0; z < sizeZ; z++)
 	{
@@ -43,21 +43,6 @@ void COceanObject::InitBuffer ()
 		{
 			vertexData.emplace_back (x - sizeX * 0.5f, 0, z - sizeZ * 0.5f);
             uvData.emplace_back(x * stepu, z * stepv);
-		}
-	}
-
-
-	static std::default_random_engine generator;
-	static std::uniform_real_distribution<float> distribution (0.0f, 1.0f);
-	static auto roll = std::bind (distribution, generator);
-    
-	std::vector<Math::Vector3> colorData;
-	colorData.reserve (size);
-    for (int z = 0; z < sizeZ; z++)
-	{
-		for (int x = 0; x < sizeX; x++)
-		{
-			colorData.emplace_back (roll (), roll (), roll ());
 		}
 	}
 
@@ -91,11 +76,6 @@ void COceanObject::InitBuffer ()
 	glBufferData (GL_ARRAY_BUFFER, uvData.size () * sizeof (uvData[0]), uvData.data (), GL_STATIC_DRAW);
 	glEnableVertexAttribArray (VertexBufferType::UV);
 	glVertexAttribPointer (VertexBufferType::UV, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-    
-	glBindBuffer (GL_ARRAY_BUFFER, mVbo[VertexBufferType::Color]);
-	glBufferData (GL_ARRAY_BUFFER, colorData.size () * sizeof (decltype (colorData)::value_type), colorData.data (), GL_STATIC_DRAW);
-	glEnableVertexAttribArray (VertexBufferType::Color);
-	glVertexAttribPointer (VertexBufferType::Color, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
 	glBindBuffer (GL_ELEMENT_ARRAY_BUFFER, mVbo[VertexBufferType::Indice]);
 	glBufferData (GL_ELEMENT_ARRAY_BUFFER, indiceData.size () * sizeof (indiceData[0]), indiceData.data (), GL_STATIC_DRAW);
@@ -227,4 +207,10 @@ void COceanObject::Render (const CCamera &camera)
     glBindVertexArray(mVao);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_INT, nullptr);
     glBindVertexArray(0);
+}
+
+
+void COceanObject::DebugSave (const char *path)
+{
+    mWaveSimulator.DebugSave (path);
 }

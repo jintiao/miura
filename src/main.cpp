@@ -16,17 +16,21 @@ void UpdateCamera (GLFWwindow *window, CCamera &camera, float deltaTime)
     
     float offsetH = 0, offsetV = 0;
     
-    if (glfwGetKey (window, GLFW_KEY_D) == GLFW_PRESS){
+    if (glfwGetKey (window, GLFW_KEY_D) == GLFW_PRESS)
+    {
 		offsetH = 1;
 	}
-	else if (glfwGetKey (window, GLFW_KEY_A) == GLFW_PRESS){
+	else if (glfwGetKey (window, GLFW_KEY_A) == GLFW_PRESS)
+    {
 		offsetH = -1;
 	}
     
-    if (glfwGetKey (window, GLFW_KEY_W) == GLFW_PRESS){
+    if (glfwGetKey (window, GLFW_KEY_W) == GLFW_PRESS)
+    {
 		offsetV = 1;
 	}
-	else if (glfwGetKey (window, GLFW_KEY_S) == GLFW_PRESS){
+	else if (glfwGetKey (window, GLFW_KEY_S) == GLFW_PRESS)
+    {
 		offsetV = -1;
 	}
     float rotateH = (float)(FIXED_CURSOR_X - xpos);
@@ -72,6 +76,12 @@ int main ()
         double currentTime = glfwGetTime();
         float deltaTime = float(currentTime - lastTime);
         lastTime = currentTime;
+        
+        if (glfwGetKey (window, GLFW_KEY_P) == GLFW_PRESS)
+        {
+            renderer.DebugSave ("ocean.bmp");
+        }
+    
         
         UpdateCamera (window, camera, deltaTime);
 		renderer.Update ((float)currentTime);
