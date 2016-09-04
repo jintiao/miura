@@ -4,6 +4,7 @@
 #include "Camera.h"
 
 #include <cassert>
+#include <iostream>
 #include <random>
 #include <string>
 #include <vector>
@@ -121,6 +122,7 @@ void COceanObject::InitShader ()
         glGetShaderiv(vs, GL_INFO_LOG_LENGTH, &bufflen);
         GLchar* log_string = new char[bufflen + 1];
         glGetShaderInfoLog(vs, bufflen, 0, log_string);
+        std::cout << log_string << std::endl;
         delete []log_string;
         assert (false);
     }
@@ -135,6 +137,7 @@ void COceanObject::InitShader ()
         glGetShaderiv(ps, GL_INFO_LOG_LENGTH, &bufflen);
         GLchar* log_string = new char[bufflen + 1];
         glGetShaderInfoLog(ps, bufflen, 0, log_string);
+        std::cout << log_string << std::endl;
         delete []log_string;
         assert (false);
     }
@@ -147,6 +150,7 @@ void COceanObject::InitShader ()
         glGetShaderiv(mShaderProgram, GL_INFO_LOG_LENGTH, &bufflen);
         GLchar* log_string = new char[bufflen + 1];
         glGetShaderInfoLog(mShaderProgram, bufflen, 0, log_string);
+        std::cout << log_string << std::endl;
         delete []log_string;
         assert (false);
     }
@@ -156,6 +160,7 @@ void COceanObject::InitShader ()
         glGetShaderiv(mShaderProgram, GL_INFO_LOG_LENGTH, &bufflen);
         GLchar* log_string = new char[bufflen + 1];
         glGetShaderInfoLog(mShaderProgram, bufflen, 0, log_string);
+        std::cout << log_string << std::endl;
         delete []log_string;
         assert (false);
     }
@@ -166,6 +171,7 @@ void COceanObject::InitShader ()
         glGetShaderiv(mShaderProgram, GL_INFO_LOG_LENGTH, &bufflen);
         GLchar* log_string = new char[bufflen + 1];
         glGetShaderInfoLog(mShaderProgram, bufflen, 0, log_string);
+        std::cout << log_string << std::endl;
         delete []log_string;
         assert (false);
     }
@@ -195,7 +201,7 @@ COceanObject::~COceanObject ()
 
 void COceanObject::Update (float currentTime)
 {
-    mWaveSimulator.Update (currentTime * 0.1);
+    mWaveSimulator.Update (currentTime * 0.025);
     
     glBindTexture(GL_TEXTURE_2D, mWaveTexture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetDataSize (), mWaveSimulator.GetDataSize (), 0, GL_RGB, GL_FLOAT, mWaveSimulator.GetDisplacementData ());
@@ -214,11 +220,9 @@ void COceanObject::Render (const CCamera &camera)
     Math::Matrix4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix ();
     glUniformMatrix4fv(mUniform[UniformType::Mvp], 1, GL_FALSE, &mvp[0][0]);
     
-    Math::Matrix4 mv = camera.GetViewMatrix ();
-    glUniformMatrix4fv(mUniform[UniformType::Mv], 1, GL_FALSE, &mv[0][0]);
+    glUniformMatrix4fv(mUniform[UniformType::Mv], 1, GL_FALSE, &camera.GetViewMatrix ()[0][0]);
     
-    Math::Matrix4 mvn = Math::Transpose(Math::Invert(mv));
-    glUniformMatrix4fv(mUniform[UniformType::Mvn], 1, GL_FALSE, &mv[0][0]);
+    glUniformMatrix4fv(mUniform[UniformType::Mvn], 1, GL_FALSE, &camera.GetViewNormalMatrix ()[0][0]);
 
     glBindVertexArray(mVao);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_INT, nullptr);

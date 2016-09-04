@@ -8,12 +8,15 @@
 CCamera::CCamera (float fov, float ratio, float near, float far)
 {
     mProjectionMatrix = Math::CreatePerspectiveMatrix (fov, ratio, near, far);
-    Update (0, SUpdateParams ());
+    Update (0, SUpdateParams (0.1));
 }
 
 
 void CCamera::Update (float deltaTime, SUpdateParams params)
 {
+    if (params.IsEmpty ())
+        return;
+
     static Math::Vector3 DEFAULT_UP = { 0.0f, 1.0f, 0.0f };
 	static float ANGLE_MAX = (float)(Math::pi * 0.5f), ANGLE_MIN = -ANGLE_MAX;
 
@@ -29,4 +32,5 @@ void CCamera::Update (float deltaTime, SUpdateParams params)
     mPosition += forward * mSpeed * params.offsetV * deltaTime * (params.boost ? mSpeedBoost : 1.0f);
 
     mViewMatrix = Math::CreateLookatMatrix (mPosition, mPosition + forward, up);
+    mViewNormalMatrix = Math::Transpose (Math::Invert (mViewMatrix));
 }
