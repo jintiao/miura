@@ -79,7 +79,7 @@ int main ()
         
         if (glfwGetKey (window, GLFW_KEY_P) == GLFW_PRESS)
         {
-            renderer.DebugSave ("ocean.bmp");
+            renderer.DebugSave ("ocean");
         }
     
         

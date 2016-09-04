@@ -32,17 +32,25 @@ private:
     
     enum UniformType
     {
+        DisplacementTexture,
+        NormalTexture,
         Mvp,
         Mv,
         Mvn,
-        WaveTexture,
         UniformMax,
+    };
+    
+    enum TextureType
+    {
+        Displacement,
+        Normal,
+        TextureMax,
     };
 
 private:
 	GLuint mShaderProgram, mUniform[UniformType::UniformMax];
     GLuint mVao, mVbo[VertexBufferType::BufferTypeMax];
-    GLuint mWaveTexture;
+    GLuint mTexture[TextureType::TextureMax];
 	GLsizei mIndiceCount;
 
 	CWaveSimulator mWaveSimulator;

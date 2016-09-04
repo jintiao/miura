@@ -13,7 +13,10 @@ CWaveSimulator::CWaveSimulator (SEnvironmentParams params) : mEnvironmentParams 
 {
 	int size = mFFTSize * mFFTSize;
 	mHeightField.resize (size);
+    mNormalFieldX.resize (size);
+    mNormalFieldZ.resize (size);
 	mDisplacementData.resize (size);
+    mNormalData.resize (size);
 
 	mDataLUT.resize (size);
 	InitDataLUT ();
@@ -28,6 +31,8 @@ void CWaveSimulator::InitDataLUT ()
 		{
 			CacheData &lookup = mDataLUT[IndexLookup (x, y)];
 			lookup.k = ComputeK (x, y);
+            lookup.kn = Math::Normalize (lookup.k);
+            lookup.expKDotX = ComputeExpKDotX (lookup.k, x, y);
 			lookup.w = ComputeWaveFrequency (lookup.k);
 			lookup.h0 = ComputeFourierAmplitude0 (lookup.k);
             lookup.h0cn = std::conj (ComputeFourierAmplitude0 (-lookup.k));
@@ -41,6 +46,16 @@ Math::Vector2 CWaveSimulator::ComputeK (int x, int y)
 {
 	static const float pi2byworld = 2.0f * pi / mWorldSize;
 	return { (x - mFFTSizeHalf) * pi2byworld, (y - mFFTSizeHalf) * pi2byworld };
+}
+
+
+// dot (kvector,  horizontal position x), two lines right below [Equation 19]
+std::complex<float> CWaveSimulator::ComputeExpKDotX (const Math::Vector2 &k, int x, int y)
+{
+	static const float lbyn = mWorldSize / mFFTSize;
+    Math::Vector2 v = { (x - mFFTSizeHalf) * lbyn, (y - mFFTSizeHalf) * lbyn };
+    float theta = Math::Dot (k, v);
+    return { std::cosf (theta), std::sinf (theta) };
 }
 
 
@@ -93,36 +108,47 @@ void CWaveSimulator::Update (float currentTime)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
-			ComputeFourierAmplitude (x, y, currentTime);
+			ComputeFourierField (x, y, currentTime);
 		}
 	}
 	FFT2D (mHeightField);
+	FFT2D (mNormalFieldX);
+	FFT2D (mNormalFieldZ);
 
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
 		{
 			int i = IndexLookup (x, y);
-            mDisplacementData[i].x = 0;
-			mDisplacementData[i].y = mHeightField[i].real () * PowNeg1 (x + y) * mEnvironmentParams.waveHeightMax;
-            mDisplacementData[i].z = 0;
+            
+            // use FFT instead of DFT will produce a pow(-1, x + y)
+            int sign = PowNeg1 (x + y);
+            
+			mDisplacementData[i].y = mHeightField[i].real () * sign * mEnvironmentParams.waveHeightMax;
+            mDisplacementData[i].x = mDisplacementData[i].y;
+            mDisplacementData[i].z = mDisplacementData[i].y;
+
+            mNormalData[i] = Math::Normalize(Math::Vector3 (-mNormalFieldX[i].real () * sign, 1.0f, -mNormalFieldZ[i].real () * sign));
 		}
 	}
 }
 
 
-// Fourier amplitudes of the wave field realization at time t, [Equation 26]
-void CWaveSimulator::ComputeFourierAmplitude (int x, int y, float t)
+// Fourier amplitude/displacement/normal of the wave field realization at time t,
+void CWaveSimulator::ComputeFourierField (int x, int y, float t)
 {
 	int i = IndexLookup (x, y);
 	auto &lookup = mDataLUT[i];
 
+    // [Equation 26]
 	float wt = lookup.w * t;
-
     // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = conj (exp(ix))
 	std::complex<float> ep = { std::cosf (wt), std::sinf (wt) };
+	mHeightField[i] = (lookup.h0 * ep + lookup.h0cn * std::conj (ep)) * lookup.expKDotX;
 
-	mHeightField[i] = lookup.h0 * ep + lookup.h0cn * std::conj (ep);
+    // [Equation 20]
+    mNormalFieldX[i] = mHeightField[i] * std::complex<float> (0, lookup.k.x);
+    mNormalFieldZ[i] = mHeightField[i] * std::complex<float> (0, lookup.k.y);
 }
 
 
@@ -234,10 +260,28 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 
 void CWaveSimulator::DebugSave (const char *path)
 {
+    std::string dfile (path);
+    dfile += "_d.bmp";
+    DebugSaveData (dfile.c_str (), mDisplacementData);
+    
+    std::string nfile (path);
+    nfile += "_n.bmp";
+    DebugSaveData (nfile.c_str (), mNormalData);
+}
+
+
+void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Vector3> &v)
+{
     float min = std::numeric_limits<float>::max ();
     float max = std::numeric_limits<float>::min ();
-    for (auto &displacement : mDisplacementData) {
-        float h = displacement.y;
+    for (auto &data : v) {
+        float h = data.x;
+        if (h > max) max = h;
+        if (h < min) min = h;
+        h = data.y;
+        if (h > max) max = h;
+        if (h < min) min = h;
+        h = data.z;
         if (h > max) max = h;
         if (h < min) min = h;
     }
@@ -248,12 +292,16 @@ void CWaveSimulator::DebugSave (const char *path)
     unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
     std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
     ofs.write ((char *)buf, sizeof (buf));
-    for (auto &displacement : mDisplacementData) {
-        float h = displacement.y;
-        h = (h - min) * scale;
-        buf[0] = (unsigned char)std::min (255, (int)(h * 255));
-        buf[1] = (unsigned char)std::min (255, (int)(h * 255));
-        buf[2] = (unsigned char)std::min (255, (int)(h * 255));
+    for (auto &data : v) {
+        float r = data.x;
+        r = (r - min) * scale;
+        float g = data.y;
+        g = (g - min) * scale;
+        float b = data.z;
+        b = (b - min) * scale;
+        buf[0] = (unsigned char)std::min (255, (int)(b * 255));
+        buf[1] = (unsigned char)std::min (255, (int)(g * 255));
+        buf[2] = (unsigned char)std::min (255, (int)(r * 255));
         buf[3] = 0;
         ofs.write ((char *)buf, 4);
     }

@@ -49,6 +49,12 @@ Vector2 Normalize (const Vector2 &v)
 }
 
 
+Vector3 Normalize (const Vector3 &v)
+{
+    return glm::normalize (v);
+}
+
+
 Matrix4 Invert (const Matrix4 &m)
 {
     return glm::inverse(m);

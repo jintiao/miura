@@ -21,13 +21,16 @@ void COceanObject::InitBuffer ()
 {
 	int sizeX = 512, sizeZ = 512, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
     
-    glGenTextures(1, &mWaveTexture);
-    glBindTexture(GL_TEXTURE_2D, mWaveTexture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    glGenTextures(TextureType::TextureMax, mTexture);
+    for (int i = 0; i < TextureType::TextureMax; i++)
+    {
+        glBindTexture(GL_TEXTURE_2D, mTexture[i]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
 	std::vector<Math::Vector3> vertexData;
 	vertexData.reserve (size);
@@ -157,7 +160,8 @@ void COceanObject::InitShader ()
     }
     
     
-    mUniform[UniformType::WaveTexture] = glGetUniformLocation(mShaderProgram, "WaveTexture");
+    mUniform[UniformType::DisplacementTexture] = glGetUniformLocation(mShaderProgram, "DisplacementTexture");
+    mUniform[UniformType::NormalTexture] = glGetUniformLocation(mShaderProgram, "NormalTexture");
     mUniform[UniformType::Mvp] = glGetUniformLocation(mShaderProgram, "mvp");
     mUniform[UniformType::Mv] = glGetUniformLocation(mShaderProgram, "mv");
     mUniform[UniformType::Mvn] = glGetUniformLocation(mShaderProgram, "mvn");
@@ -175,7 +179,7 @@ COceanObject::~COceanObject ()
 	glDeleteBuffers (VertexBufferType::BufferTypeMax, mVbo);
     glDeleteVertexArrays(1, &mVao);
 	glDeleteProgram (mShaderProgram);
-	glDeleteTextures(1, &mWaveTexture);
+	glDeleteTextures(TextureType::TextureMax, mTexture);
 }
 
 
@@ -183,8 +187,12 @@ void COceanObject::Update (float currentTime)
 {
     mWaveSimulator.Update (currentTime * 0.025);
     
-    glBindTexture(GL_TEXTURE_2D, mWaveTexture);
+    glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Displacement]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetDataSize (), mWaveSimulator.GetDataSize (), 0, GL_RGB, GL_FLOAT, mWaveSimulator.GetDisplacementData ());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Normal]);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetDataSize (), mWaveSimulator.GetDataSize (), 0, GL_RGB, GL_FLOAT, mWaveSimulator.GetNormalData ());
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -194,8 +202,12 @@ void COceanObject::Render (const CCamera &camera)
 	glUseProgram (mShaderProgram);
     
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mWaveTexture);
-    glUniform1i(mUniform[UniformType::WaveTexture], 0);
+    glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Displacement]);
+    glUniform1i(mUniform[UniformType::DisplacementTexture], 0);
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Normal]);
+    glUniform1i(mUniform[UniformType::NormalTexture], 1);
     
     Math::Matrix4 mvp = camera.GetProjectionMatrix () * camera.GetViewMatrix ();
     glUniformMatrix4fv(mUniform[UniformType::Mvp], 1, GL_FALSE, &mvp[0][0]);
