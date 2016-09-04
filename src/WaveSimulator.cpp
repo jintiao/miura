@@ -13,6 +13,8 @@ CWaveSimulator::CWaveSimulator (SEnvironmentParams params) : mEnvironmentParams 
 {
 	int size = mFFTSize * mFFTSize;
 	mHeightField.resize (size);
+    mDisplacementFieldX.resize (size);
+    mDisplacementFieldZ.resize (size);
     mNormalFieldX.resize (size);
     mNormalFieldZ.resize (size);
 	mDisplacementData.resize (size);
@@ -111,7 +113,10 @@ void CWaveSimulator::Update (float currentTime)
 			ComputeFourierField (x, y, currentTime);
 		}
 	}
+    
 	FFT2D (mHeightField);
+	FFT2D (mDisplacementFieldX);
+	FFT2D (mDisplacementFieldZ);
 	FFT2D (mNormalFieldX);
 	FFT2D (mNormalFieldZ);
 
@@ -125,9 +130,10 @@ void CWaveSimulator::Update (float currentTime)
             int sign = PowNeg1 (x + y);
             
 			mDisplacementData[i].y = mHeightField[i].real () * sign * mEnvironmentParams.waveHeightMax;
-            mDisplacementData[i].x = mDisplacementData[i].y;
-            mDisplacementData[i].z = mDisplacementData[i].y;
+            mDisplacementData[i].x = mDisplacementFieldX[i].real () * sign * mDisplacementLambda;
+            mDisplacementData[i].z = mDisplacementFieldZ[i].real () * sign * mDisplacementLambda;
 
+            // normalize ((0, 1, 0) - (nx, 0, nz))
             mNormalData[i] = Math::Normalize(Math::Vector3 (-mNormalFieldX[i].real () * sign, 1.0f, -mNormalFieldZ[i].real () * sign));
 		}
 	}
@@ -145,6 +151,10 @@ void CWaveSimulator::ComputeFourierField (int x, int y, float t)
     // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = conj (exp(ix))
 	std::complex<float> ep = { std::cosf (wt), std::sinf (wt) };
 	mHeightField[i] = (lookup.h0 * ep + lookup.h0cn * std::conj (ep)) * lookup.expKDotX;
+    
+    // [Equation 29]
+    mDisplacementFieldX[i] = mHeightField[i] * std::complex<float> (0, -lookup.kn.x);
+    mDisplacementFieldZ[i] = mHeightField[i] * std::complex<float> (0, -lookup.kn.y);
 
     // [Equation 20]
     mNormalFieldX[i] = mHeightField[i] * std::complex<float> (0, lookup.k.x);

@@ -61,10 +61,13 @@ private:
 	const float mWorldSize = 1.0f; // Lx/Lz, 1000 meters
 	const float mPSpectrumConstant = 1.0f;
 	const float mMinimalWaveSize = mWorldSize * 0.001f; // waves length way smaller than the world size should be suppressed
-	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize; 
+	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize;
+    const float mDisplacementLambda = 400.0f;
 
 	std::vector<CacheData> mDataLUT; // pre-computed data we need to use in every frame
 	std::vector<std::complex<float>> mHeightField; // fourier amplitude of the wave field realization at time t
+    std::vector<std::complex<float>> mDisplacementFieldX;
+    std::vector<std::complex<float>> mDisplacementFieldZ;
     std::vector<std::complex<float>> mNormalFieldX;
     std::vector<std::complex<float>> mNormalFieldZ;
 
