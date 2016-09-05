@@ -44,7 +44,7 @@ void COceanObject::InitBuffer ()
 	{
 		for (int x = 0; x < sizeX; x++)
 		{
-			vertexData.emplace_back (x - sizeX * 0.5f, 0, z - sizeZ * 0.5f);
+			vertexData.emplace_back (x - sizeX * 0.5f * mVertexScale, 0, z - sizeZ * 0.5f * mVertexScale);
             uvData.emplace_back(x * stepu, z * stepv);
 		}
 	}
@@ -185,7 +185,7 @@ COceanObject::~COceanObject ()
 
 void COceanObject::Update (float currentTime)
 {
-    mWaveSimulator.Update (currentTime * 0.025);
+    mWaveSimulator.Update (currentTime * mUpdateRate);
     
     glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Displacement]);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mWaveSimulator.GetDataSize (), mWaveSimulator.GetDataSize (), 0, GL_RGB, GL_FLOAT, mWaveSimulator.GetDisplacementData ());

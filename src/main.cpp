@@ -67,7 +67,7 @@ int main ()
 	if (glewInit () != GLEW_OK) return -3;
     
 
-    CCamera camera (Math::Degree2Radians(60.0f), float (width) / float (height), 0.1f, 1000.0f);
+    CCamera camera (Math::Degree2Radians(60.0f), float (width) / float (height), 0.1f, 10000.0f);
 	CRenderer renderer (width, height, camera);
 
     auto lastTime = glfwGetTime();

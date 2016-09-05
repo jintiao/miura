@@ -33,7 +33,7 @@ void CWaveSimulator::InitDataLUT ()
 		{
 			CacheData &lookup = mDataLUT[IndexLookup (x, y)];
 			lookup.k = ComputeK (x, y);
-            lookup.kn = Math::Normalize (lookup.k);
+            lookup.kn = Math::Length (lookup.k) > 0.00001f ? Math::Normalize (lookup.k) : Math::Vector2 (0, 0);
             lookup.expKDotX = ComputeExpKDotX (lookup.k, x, y);
 			lookup.w = ComputeWaveFrequency (lookup.k);
 			lookup.h0 = ComputeFourierAmplitude0 (lookup.k);
@@ -51,7 +51,7 @@ Math::Vector2 CWaveSimulator::ComputeK (int x, int y)
 }
 
 
-// dot (kvector,  horizontal position x), two lines right below [Equation 19]
+// exp (i dot (kvector,  horizontal position v(x, y))), two lines right below [Equation 19]
 std::complex<float> CWaveSimulator::ComputeExpKDotX (const Math::Vector2 &k, int x, int y)
 {
 	static const float lbyn = mWorldSize / mFFTSize;
@@ -88,24 +88,24 @@ float CWaveSimulator::ComputePhillipsSpectrum (const Math::Vector2 &k)
 	if (k2 == 0)
 		return 0.0f;
 
+	static const float L = mEnvironmentParams.windSpeed * mEnvironmentParams.windSpeed / g;
+	static const float L2 = L * L;
+	static const float l2 = mMinimalWaveScale * mMinimalWaveScale * -1;
+
 	float k4 = k2 * k2;
-	float L = mEnvironmentParams.windSpeed * mEnvironmentParams.windSpeed / g;
-	float L2 = L * L;
 	float kL2 = k2 * L2;
 	float kw = Math::Dot (Math::Normalize (k), mEnvironmentParams.windDirection);
 	float kw2 = kw * kw;
 
 	// [Equation 24]
-	float extraFactor = std::expf (k2 * mMinimalWaveSize2);
+	float extraFactor = std::expf (k2 * l2);
 
-	return (mPSpectrumConstant * (std::expf (-1.0f / kL2) / k4) * kw2 * extraFactor);
+	return (mPhillipsSpectrumConstant * (std::expf (-1.0f / kL2) / k4) * kw2 * extraFactor);
 }
 
 
 void CWaveSimulator::Update (float currentTime)
 {
-    // wave height field, [Equation 19]
-
 	for (int x = 0; x < mFFTSize; x++)
 	{
 		for (int y = 0; y < mFFTSize; y++)
@@ -114,6 +114,7 @@ void CWaveSimulator::Update (float currentTime)
 		}
 	}
     
+	// back to space coordinate, [Equation 19]
 	FFT2D (mHeightField);
 	FFT2D (mDisplacementFieldX);
 	FFT2D (mDisplacementFieldZ);
@@ -129,14 +130,18 @@ void CWaveSimulator::Update (float currentTime)
             // use FFT instead of DFT will produce a pow(-1, x + y)
             int sign = PowNeg1 (x + y);
             
-			mDisplacementData[i].y = mHeightField[i].real () * sign * mEnvironmentParams.waveHeightMax;
-            mDisplacementData[i].x = mDisplacementFieldX[i].real () * sign * mDisplacementLambda;
-            mDisplacementData[i].z = mDisplacementFieldZ[i].real () * sign * mDisplacementLambda;
+			mDisplacementData[i].y = mHeightField[i].real () * sign;
+            mDisplacementData[i].x = mDisplacementFieldX[i].real () * sign;
+            mDisplacementData[i].z = mDisplacementFieldZ[i].real () * sign;
 
             // normalize ((0, 1, 0) - (nx, 0, nz))
             mNormalData[i] = Math::Normalize(Math::Vector3 (-mNormalFieldX[i].real () * sign, 1.0f, -mNormalFieldZ[i].real () * sign));
 		}
 	}
+
+	// displacement data needs to be send to gpu, having great(small) number doesn't work well
+	// so we normalize it to [0, 1], then we do the scale in shader
+	NormalizeDisplacement ();
 }
 
 
@@ -268,30 +273,64 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 }
 
 
+void CWaveSimulator::NormalizeDisplacement ()
+{
+	float minx = std::numeric_limits<float>::max ();
+	float maxx = std::numeric_limits<float>::min ();
+	float miny = std::numeric_limits<float>::max ();
+	float maxy = std::numeric_limits<float>::min ();
+	float minz = std::numeric_limits<float>::max ();
+	float maxz = std::numeric_limits<float>::min ();
+
+	for (auto &data : mDisplacementData) {
+		if (data.x > maxx) maxx = data.x;
+		if (data.x < minx) minx = data.x;
+		if (data.y > maxy) maxy = data.y;
+		if (data.y < miny) miny = data.y;
+		if (data.z > maxz) maxz = data.z;
+		if (data.z < minz) minz = data.z;
+	}
+	float scalex = 1.0f / (maxx - minx);
+	float scaley = 1.0f / (maxy - miny);
+	float scalez = 1.0f / (maxz - minz);
+	for (auto &data : mDisplacementData) {
+		data.x = (data.x - minx) * scalex;
+		data.y = (data.y - miny) * scaley;
+		data.z = (data.z - minz) * scalez;
+	}
+}
+
+
 void CWaveSimulator::DebugSave (const char *path)
 {
     std::string dfile (path);
     dfile += "_d.bmp";
-    DebugSaveData (dfile.c_str (), mDisplacementData);
+    DebugSaveData (dfile.c_str (), mDisplacementData, 1);
     
-    std::string nfile (path);
-    nfile += "_n.bmp";
-    DebugSaveData (nfile.c_str (), mNormalData);
+    std::string nxfile (path);
+    nxfile += "_nx.bmp";
+    DebugSaveData (nxfile.c_str (), mNormalData, 0);
+
+	std::string nyfile (path);
+	nyfile += "_ny.bmp";
+	DebugSaveData (nyfile.c_str (), mNormalData, 1);
+
+	std::string nzfile (path);
+	nzfile += "_nz.bmp";
+	DebugSaveData (nzfile.c_str (), mNormalData, 2);
 }
 
 
-void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Vector3> &v)
+void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Vector3> &v, int index)
 {
     float min = std::numeric_limits<float>::max ();
     float max = std::numeric_limits<float>::min ();
     for (auto &data : v) {
         float h = data.x;
-        if (h > max) max = h;
-        if (h < min) min = h;
-        h = data.y;
-        if (h > max) max = h;
-        if (h < min) min = h;
-        h = data.z;
+		if (index == 1)
+			h = data.y;
+		else if (index == 2)
+			h = data.z;
         if (h > max) max = h;
         if (h < min) min = h;
     }
@@ -303,15 +342,17 @@ void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Ve
     std::ofstream ofs (path, std::ios_base::out | std::ios_base::binary);
     ofs.write ((char *)buf, sizeof (buf));
     for (auto &data : v) {
-        float r = data.x;
-        r = (r - min) * scale;
-        float g = data.y;
-        g = (g - min) * scale;
-        float b = data.z;
-        b = (b - min) * scale;
-        buf[0] = (unsigned char)std::min (255, (int)(b * 255));
-        buf[1] = (unsigned char)std::min (255, (int)(g * 255));
-        buf[2] = (unsigned char)std::min (255, (int)(r * 255));
+		float h = data.x;
+		if (index == 1)
+			h = data.y;
+		else if (index == 2)
+			h = data.z;
+
+        h = (h - min) * scale;
+
+        buf[0] = (unsigned char)std::min (255, (int)(h * 255));
+        buf[1] = (unsigned char)std::min (255, (int)(h * 255));
+        buf[2] = (unsigned char)std::min (255, (int)(h * 255));
         buf[3] = 0;
         ofs.write ((char *)buf, 4);
     }

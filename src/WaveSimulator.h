@@ -46,8 +46,10 @@ private:
 
 	inline int IndexLookup (int x, int y) { return y * mFFTSize + x; }
     inline int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
+
+	void NormalizeDisplacement ();
     
-    void DebugSaveData (const char *path, const std::vector<Math::Vector3> &v);
+    void DebugSaveData (const char *path, const std::vector<Math::Vector3> &v, int index);
 
 private:
     SEnvironmentParams mEnvironmentParams;
@@ -56,12 +58,11 @@ private:
 	const float pi = (float)M_PI; // 
 
 	const int mFFTSize = 64; // N/M, must be power of 2
-	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
 	const int mFFTSizeHalf = mFFTSize / 2;
-	const float mWorldSize = 1.0f; // Lx/Lz, 1000 meters
-	const float mPSpectrumConstant = 1.0f;
-	const float mMinimalWaveSize = mWorldSize * 0.001f; // waves length way smaller than the world size should be suppressed
-	const float mMinimalWaveSize2 = -mMinimalWaveSize * mMinimalWaveSize;
+	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
+	const float mWorldSize = 1.0f; // Lx/Lz, meters
+	const float mPhillipsSpectrumConstant = 1.0f;
+	const float mMinimalWaveScale = 0.001f; // waves length way smaller than the world size should be suppressed
     const float mDisplacementLambda = 400.0f;
 
 	std::vector<CacheData> mDataLUT; // pre-computed data we need to use in every frame

@@ -8,7 +8,7 @@
 CCamera::CCamera (float fov, float ratio, float near, float far)
 {
     mProjectionMatrix = Math::CreatePerspectiveMatrix (fov, ratio, near, far);
-    Update (0, SUpdateParams (0.1));
+    Update (0, SUpdateParams (0.1f));
 }
 
 
