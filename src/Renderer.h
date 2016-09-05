@@ -10,7 +10,7 @@ class CRenderer
 public:
 	CRenderer (int width, int height, const CCamera &cam);
 
-	void Update (float currentTime);
+	void Draw (float currentTime, bool noUpdate);
     
     void DebugSave (const char *filename);
 

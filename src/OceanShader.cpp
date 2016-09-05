@@ -21,18 +21,18 @@ void main (){
 
 float vertexScale = 1.0;
 float waveHeight = 30.0;
-float dispLambda = 5.0;
+float dispLambda = 15.0;
 
-vec4 disp = textureLod (DisplacementTexture, vertexUv, 0.0) * 2 - vec4 (1, 1, 1, 0);
+vec3 disp = textureLod (DisplacementTexture, vertexUv, 0.0).xyz * 2 - 1;
 
-vec4 newVertex = vec4 ((vertexPos.x + disp.x * dispLambda) * vertexScale, vertexPos.y + disp.y * waveHeight, (vertexPos.z + disp.z * dispLambda) * vertexScale, 1);
+vec4 newVertex = vec4 ((vertexPos.x + disp.x * dispLambda) * vertexScale, disp.y * waveHeight, (vertexPos.z + disp.z * dispLambda) * vertexScale, 1);
 
 gl_Position = mvp * newVertex;
 
 viewPos = mv * newVertex;
 
-vec4 vnormal = textureLod (NormalTexture, vertexUv, 0.0) * 2 - vec4 (1, 1, 1, 0);
-viewNormal = mvn * vec4 (vnormal.xyz, 0);
+vec3 vnormal = textureLod (NormalTexture, vertexUv, 0.0).xyz * 2 - 1;
+viewNormal = mvn * vec4 (vnormal, 0);
 }
 
 /////// end vertex shader ///////
@@ -59,7 +59,7 @@ vec3 upwellingColor = vec3 (0.0, 0.2, 0.3);
 vec3 skyColor = vec3 (0.69, 0.84, 1);
 vec3 ambiantColor = vec3 (0.1, 0.1, 0.1);
 float snell = 1.34;
-float diffuse = 0.91;
+float diffuse = 0.8;
    
 float reflectivity;
 vec4 ldir = mv * vec4 (lightDir, 0);

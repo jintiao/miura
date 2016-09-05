@@ -40,6 +40,16 @@ void UpdateCamera (GLFWwindow *window, CCamera &camera, float deltaTime)
 }
 
 
+bool paused = false;
+void HandleRenderInput (GLFWwindow *, int key, int code, int state, int)
+{
+    if (key == GLFW_KEY_P && state == GLFW_PRESS)
+    {
+        paused = !paused;
+    }
+}
+
+
 int main ()
 {
 	if (!glfwInit ()) return -1;
@@ -57,6 +67,7 @@ int main ()
     FIXED_CURSOR_Y = height / 2;
     
 	glfwMakeContextCurrent (window);
+    glfwSetKeyCallback (window, HandleRenderInput);
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwPollEvents();
@@ -70,20 +81,22 @@ int main ()
     CCamera camera (Math::Degree2Radians(60.0f), float (width) / float (height), 0.1f, 10000.0f);
 	CRenderer renderer (width, height, camera);
 
-    auto lastTime = glfwGetTime();
+
+    double pausedTime = 0;
+    double lastTime = glfwGetTime();
 	while (!glfwWindowShouldClose (window) && glfwGetKey (window, GLFW_KEY_ESCAPE) != GLFW_PRESS)
 	{
         double currentTime = glfwGetTime();
         float deltaTime = float(currentTime - lastTime);
         lastTime = currentTime;
         
-        if (glfwGetKey (window, GLFW_KEY_P) == GLFW_PRESS)
+        if (paused)
         {
-            renderer.DebugSave ("ocean");
+            pausedTime += deltaTime;
         }
         
         UpdateCamera (window, camera, deltaTime);
-		renderer.Update ((float)currentTime);
+        renderer.Draw ((float)(currentTime - pausedTime), paused);
 
 		glfwSwapBuffers (window);
 		glfwPollEvents ();

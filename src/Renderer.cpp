@@ -13,11 +13,14 @@ CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam)
 }
 
 
-void CRenderer::Update (float currentTime)
+void CRenderer::Draw (float currentTime, bool noUpdate)
 {
+    if (!noUpdate)
+    {
+        mOcean.Update (currentTime);
+    }
+    
 	glClear (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    mOcean.Update (currentTime);
 	mOcean.Render (mCamera);
 }
 

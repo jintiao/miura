@@ -6,7 +6,7 @@ struct SOceanParams
 	Math::Vector2 windDirection;
 	float windSpeed;
 
-	SOceanParams (float angle = 0.4f, float speed = 31.0f) :
+	SOceanParams (float angle = 0.0f, float speed = 31.0f) :
         windDirection (std::cosf (angle), std::sinf (angle)),
         windSpeed (speed)
     {
