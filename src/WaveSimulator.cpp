@@ -141,9 +141,8 @@ void CWaveSimulator::Update (float currentTime)
 		}
 	}
 
-	// displacement data needs to be send to gpu, having great(small) number doesn't work well(in Windows 10)
-	// so we normalize it to [0, 1], then we do the scale in shader
-	NormalizeDisplacement ();
+	// texture values must be [0,1] in gpu, so we need to normalize it, then rescale it in shader
+	NormalizeData ();
 }
 
 
@@ -275,30 +274,38 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 }
 
 
-void CWaveSimulator::NormalizeDisplacement ()
+void CWaveSimulator::NormalizeData ()
 {
-	float minx = std::numeric_limits<float>::max ();
-	float maxx = std::numeric_limits<float>::min ();
-	float miny = std::numeric_limits<float>::max ();
-	float maxy = std::numeric_limits<float>::min ();
-	float minz = std::numeric_limits<float>::max ();
-	float maxz = std::numeric_limits<float>::min ();
-
+	float min = std::numeric_limits<float>::max ();
+	float max = std::numeric_limits<float>::min ();
 	for (auto &data : mDisplacementData) {
-		if (data.x > maxx) maxx = data.x;
-		if (data.x < minx) minx = data.x;
-		if (data.y > maxy) maxy = data.y;
-		if (data.y < miny) miny = data.y;
-		if (data.z > maxz) maxz = data.z;
-		if (data.z < minz) minz = data.z;
+		if (data.x > max) max = data.x;
+		if (data.x < min) min = data.x;
+		if (data.z > max) max = data.z;
+		if (data.z < min) min = data.z;
 	}
-	float scalex = 1.0f / (maxx - minx);
-	float scaley = 1.0f / (maxy - miny);
-	float scalez = 1.0f / (maxz - minz);
+    max = std::max (std::fabs (max), std::fabs (min));
 	for (auto &data : mDisplacementData) {
-		data.x = (data.x - minx) * scalex;
-		data.y = (data.y - miny) * scaley;
-		data.z = (data.z - minz) * scalez;
+		data.x = (data.x / max + 1.0f) * 0.5f;
+		data.z = (data.z / max + 1.0f) * 0.5f;
+	}
+    
+    min = std::numeric_limits<float>::max ();
+	max = std::numeric_limits<float>::min ();
+	for (auto &data : mDisplacementData) {
+		if (data.y > max) max = data.y;
+		if (data.y < min) min = data.y;
+	}
+    max = std::max (std::fabs (max), std::fabs (min));
+	for (auto &data : mDisplacementData) {
+		data.y = (data.y / max + 1.0f) * 0.5f;
+	}
+    
+    
+	for (auto &data : mNormalData) {
+		data.x = (data.x + 1) * 0.5f;
+		data.y = (data.y + 1) * 0.5f;
+		data.z = (data.z + 1) * 0.5f;
 	}
 }
 
@@ -306,8 +313,16 @@ void CWaveSimulator::NormalizeDisplacement ()
 void CWaveSimulator::DebugSave (const char *path)
 {
     std::string dfile (path);
-    dfile += "_d.bmp";
+    dfile += "_h.bmp";
     DebugSaveData (dfile.c_str (), mDisplacementData, 1);
+
+    std::string dxfile (path);
+    dxfile += "_dx.bmp";
+    DebugSaveData (dxfile.c_str (), mDisplacementData, 0);
+
+    std::string dzfile (path);
+    dzfile += "_dz.bmp";
+    DebugSaveData (dzfile.c_str (), mDisplacementData, 2);
     
     std::string nxfile (path);
     nxfile += "_nx.bmp";
@@ -325,19 +340,6 @@ void CWaveSimulator::DebugSave (const char *path)
 
 void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Vector3> &v, int index)
 {
-    float min = std::numeric_limits<float>::max ();
-    float max = std::numeric_limits<float>::min ();
-    for (auto &data : v) {
-        float h = data.x;
-		if (index == 1)
-			h = data.y;
-		else if (index == 2)
-			h = data.z;
-        if (h > max) max = h;
-        if (h < min) min = h;
-    }
-    float scale = 1 / (max - min);
-
 #define INT2CHAR_BIT(num, bit) (unsigned char)(((num) >> (bit)) & 0xff)
 #define INT2CHAR(num) INT2CHAR_BIT((num),0), INT2CHAR_BIT((num),8), INT2CHAR_BIT((num),16), INT2CHAR_BIT((num),24)
     unsigned char buf[54] = { 'B', 'M', INT2CHAR (54 + mFFTSize*mFFTSize * 32), INT2CHAR (0), INT2CHAR (54), INT2CHAR (40), INT2CHAR (mFFTSize), INT2CHAR (mFFTSize), 1, 0, 32, 0 };
@@ -349,8 +351,6 @@ void CWaveSimulator::DebugSaveData (const char *path, const std::vector<Math::Ve
 			h = data.y;
 		else if (index == 2)
 			h = data.z;
-
-        h = (h - min) * scale;
 
         buf[0] = (unsigned char)std::min (255, (int)(h * 255));
         buf[1] = (unsigned char)std::min (255, (int)(h * 255));

@@ -49,7 +49,7 @@ private:
     };
 
 private:
-	const int mVertexSize = 200;
+	const int mVertexSize = 512;
 
 	GLuint mShaderProgram, mUniform[UniformType::UniformMax];
     GLuint mVao, mVbo[VertexBufferType::BufferTypeMax];

@@ -47,7 +47,7 @@ private:
 	inline int IndexLookup (int x, int y) { return y * mFFTSize + x; }
     inline int PowNeg1 (int n) { static int pow[2] = { 1, -1 }; return pow[n & 1]; }
 
-	void NormalizeDisplacement ();
+	void NormalizeData ();
     
     void DebugSaveData (const char *path, const std::vector<Math::Vector3> &v, int index);
 

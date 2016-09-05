@@ -19,11 +19,11 @@ out vec4 viewNormal;
 
 void main (){
 
-float vertexScale = 5.0;
+float vertexScale = 1.0;
 float waveHeight = 30.0;
-float dispLambda = 2.0;
+float dispLambda = 5.0;
 
-vec4 disp = textureLod (DisplacementTexture, vertexUv, 0.0);
+vec4 disp = textureLod (DisplacementTexture, vertexUv, 0.0) * 2 - vec4 (1, 1, 1, 0);
 
 vec4 newVertex = vec4 ((vertexPos.x + disp.x * dispLambda) * vertexScale, vertexPos.y + disp.y * waveHeight, (vertexPos.z + disp.z * dispLambda) * vertexScale, 1);
 
@@ -31,7 +31,7 @@ gl_Position = mvp * newVertex;
 
 viewPos = mv * newVertex;
 
-vec4 vnormal = textureLod (NormalTexture, vertexUv, 0.0);
+vec4 vnormal = textureLod (NormalTexture, vertexUv, 0.0) * 2 - vec4 (1, 1, 1, 0);
 viewNormal = mvn * vec4 (vnormal.xyz, 0);
 }
 
@@ -53,7 +53,8 @@ in vec4 viewNormal;
 out vec3 color;
 
 void main(){
-vec3 lightDir = normalize (vec3 (1.0, 1.0, 1.0));
+
+vec3 lightDir = normalize (vec3 (1.0, 1.0, 0.0));
 vec3 upwellingColor = vec3 (0.0, 0.2, 0.3);
 vec3 skyColor = vec3 (0.69, 0.84, 1);
 vec3 ambiantColor = vec3 (0.1, 0.1, 0.1);
