@@ -9,14 +9,16 @@
 #include <random>
 
 
-CWaveSimulator::CWaveSimulator (SEnvironmentParams params) : mEnvironmentParams (params)
+CWaveSimulator::CWaveSimulator (SOceanParams params) : mEnvironmentParams (params)
 {
 	int size = mFFTSize * mFFTSize;
+
 	mHeightField.resize (size);
     mDisplacementFieldX.resize (size);
     mDisplacementFieldZ.resize (size);
     mNormalFieldX.resize (size);
     mNormalFieldZ.resize (size);
+
 	mDisplacementData.resize (size);
     mNormalData.resize (size);
 
@@ -127,7 +129,7 @@ void CWaveSimulator::Update (float currentTime)
 		{
 			int i = IndexLookup (x, y);
             
-            // use FFT instead of DFT will produce a pow(-1, x + y)
+            // FFTl produce a pow(-1, x + y)
             int sign = PowNeg1 (x + y);
             
 			mDisplacementData[i].y = mHeightField[i].real () * sign;
@@ -139,7 +141,7 @@ void CWaveSimulator::Update (float currentTime)
 		}
 	}
 
-	// displacement data needs to be send to gpu, having great(small) number doesn't work well
+	// displacement data needs to be send to gpu, having great(small) number doesn't work well(in Windows 10)
 	// so we normalize it to [0, 1], then we do the scale in shader
 	NormalizeDisplacement ();
 }

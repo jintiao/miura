@@ -6,11 +6,11 @@
 #include <vector>
 
 
-// most calculation is base on [2001, Jerry Tessendorf]Simulating Ocean Water.
+// most calculation is base on [2001, Jerry Tessendorf] Simulating Ocean Water.
 class CWaveSimulator
 {
 public:
-    CWaveSimulator (SEnvironmentParams params = SEnvironmentParams ());
+    CWaveSimulator (SOceanParams params);
 
     void Update (float currentTime);
     
@@ -52,18 +52,18 @@ private:
     void DebugSaveData (const char *path, const std::vector<Math::Vector3> &v, int index);
 
 private:
-    SEnvironmentParams mEnvironmentParams;
+	SOceanParams mEnvironmentParams;
+
 
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 
-
 	const int mFFTSize = 64; // N/M, must be power of 2
 	const int mFFTSizeHalf = mFFTSize / 2;
 	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
 	const float mWorldSize = 1.0f; // Lx/Lz, meters
 	const float mPhillipsSpectrumConstant = 1.0f;
 	const float mMinimalWaveScale = 0.001f; // waves length way smaller than the world size should be suppressed
-    const float mDisplacementLambda = 400.0f;
+
 
 	std::vector<CacheData> mDataLUT; // pre-computed data we need to use in every frame
 	std::vector<std::complex<float>> mHeightField; // fourier amplitude of the wave field realization at time t
@@ -71,6 +71,7 @@ private:
     std::vector<std::complex<float>> mDisplacementFieldZ;
     std::vector<std::complex<float>> mNormalFieldX;
     std::vector<std::complex<float>> mNormalFieldZ;
+
 
 	std::vector<Math::Vector3> mDisplacementData;
 	std::vector<Math::Vector3> mNormalData;

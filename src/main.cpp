@@ -81,7 +81,6 @@ int main ()
         {
             renderer.DebugSave ("ocean");
         }
-    
         
         UpdateCamera (window, camera, deltaTime);
 		renderer.Update ((float)currentTime);

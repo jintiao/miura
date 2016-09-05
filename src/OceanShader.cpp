@@ -19,9 +19,9 @@ out vec4 viewNormal;
 
 void main (){
 
-float vertexScale = 1.0;
+float vertexScale = 5.0;
 float waveHeight = 30.0;
-float dispLambda = 10.0;
+float dispLambda = 2.0;
 
 vec4 disp = textureLod (DisplacementTexture, vertexUv, 0.0);
 

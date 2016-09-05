@@ -9,7 +9,7 @@ class CCamera;
 class COceanObject
 {
 public:
-	COceanObject ();
+	COceanObject (SEnvironmentParams env);
 	~COceanObject ();
 
 	void Update (float currentTime);
@@ -37,6 +37,7 @@ private:
         Mvp,
         Mv,
         Mvn,
+		SunDir,
         UniformMax,
     };
     
@@ -48,12 +49,14 @@ private:
     };
 
 private:
+	const int mVertexSize = 200;
+
 	GLuint mShaderProgram, mUniform[UniformType::UniformMax];
     GLuint mVao, mVbo[VertexBufferType::BufferTypeMax];
     GLuint mTexture[TextureType::TextureMax];
 	GLsizei mIndiceCount;
 
+	SEnvironmentParams mEnvironmentParams;
 	CWaveSimulator mWaveSimulator;
 	float mUpdateRate = 0.05f;
-	float mVertexScale = 1.0f;
 };

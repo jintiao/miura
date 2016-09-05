@@ -10,7 +10,7 @@
 #include <vector>
 
 
-COceanObject::COceanObject ()
+COceanObject::COceanObject (SEnvironmentParams env) : mEnvironmentParams (env), mWaveSimulator (env)
 {
 	InitBuffer ();
 	InitShader ();
@@ -18,9 +18,7 @@ COceanObject::COceanObject ()
 
 
 void COceanObject::InitBuffer ()
-{
-	int sizeX = 512, sizeZ = 512, size = sizeX * sizeZ; // sizeX * sizeZ (meters)
-    
+{    
     glGenTextures(TextureType::TextureMax, mTexture);
     for (int i = 0; i < TextureType::TextureMax; i++)
     {
@@ -32,40 +30,40 @@ void COceanObject::InitBuffer ()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-	std::vector<Math::Vector3> vertexData;
-	vertexData.reserve (size);
-	std::vector<Math::Vector2> uvData;
-	uvData.reserve (size);
-    
-    float stepu = 1.0f / (float)sizeX;
-    float stepv = 1.0f / (float)sizeZ;
 
-	for (int z = 0; z < sizeZ; z++)
+	std::vector<Math::Vector3> vertexData;
+	std::vector<Math::Vector2> uvData;
+	std::vector<unsigned int> indiceData;
+	vertexData.reserve (mVertexSize * mVertexSize);
+	uvData.reserve (mVertexSize * mVertexSize);
+	indiceData.reserve (mVertexSize * mVertexSize * 6);
+    
+    float stepUv = 1.0f / (float)mVertexSize;
+	for (int z = 0; z < mVertexSize; z++)
 	{
-		for (int x = 0; x < sizeX; x++)
+		for (int x = 0; x < mVertexSize; x++)
 		{
-			vertexData.emplace_back (x - sizeX * 0.5f * mVertexScale, 0, z - sizeZ * 0.5f * mVertexScale);
-            uvData.emplace_back(x * stepu, z * stepv);
+			vertexData.emplace_back (x - mVertexSize * 0.5f, 0, z - mVertexSize * 0.5f);
+            uvData.emplace_back(x * stepUv, z * stepUv);
 		}
 	}
 
-	std::vector<unsigned int> indiceData;
-	indiceData.reserve (size * 6);
-	for (GLsizei z = 0; z < sizeZ - 1; z++)
+	for (GLsizei z = 0; z < mVertexSize - 1; z++)
 	{
-		for (GLsizei x = 0; x < sizeX - 1; x++)
+		for (GLsizei x = 0; x < mVertexSize - 1; x++)
 		{
-			indiceData.emplace_back (sizeX * z + x);
-			indiceData.emplace_back (sizeX * z + x + 1);
-			indiceData.emplace_back (sizeX * (z + 1) + x);
+			indiceData.emplace_back (mVertexSize * z + x);
+			indiceData.emplace_back (mVertexSize * z + x + 1);
+			indiceData.emplace_back (mVertexSize * (z + 1) + x);
 
-			indiceData.emplace_back (sizeX * (z + 1) + x);
-			indiceData.emplace_back (sizeX * z + x + 1);
-			indiceData.emplace_back (sizeX * (z + 1) + x + 1);
+			indiceData.emplace_back (mVertexSize * (z + 1) + x);
+			indiceData.emplace_back (mVertexSize * z + x + 1);
+			indiceData.emplace_back (mVertexSize * (z + 1) + x + 1);
 		}
 	}
 	mIndiceCount = static_cast<decltype (mIndiceCount)> (indiceData.size ());
     
+
 	glGenVertexArrays (1, &mVao);
 	glGenBuffers (VertexBufferType::BufferTypeMax, mVbo);
     glBindVertexArray(mVao);
@@ -95,7 +93,6 @@ void COceanObject::InitShader ()
 	GLint result = GL_FALSE;
     GLint bufflen = 0;
     
-
 	GLuint vs = glCreateShader (GL_VERTEX_SHADER);
 	glShaderSource (vs, 1, &vsSrc, NULL);
 	glCompileShader (vs);
@@ -109,7 +106,6 @@ void COceanObject::InitShader ()
         delete []log_string;
         assert (false);
     }
-
 
 	GLuint ps = glCreateShader (GL_FRAGMENT_SHADER);
 	glShaderSource (ps, 1, &psSrc, NULL);
@@ -125,7 +121,6 @@ void COceanObject::InitShader ()
         assert (false);
     }
 
-
 	mShaderProgram = glCreateProgram ();
 	glAttachShader (mShaderProgram, vs);
     if (glGetError () != GL_NO_ERROR)
@@ -137,6 +132,7 @@ void COceanObject::InitShader ()
         delete []log_string;
         assert (false);
     }
+
 	glAttachShader (mShaderProgram, ps);
     if (glGetError () != GL_NO_ERROR)
     {
@@ -147,6 +143,7 @@ void COceanObject::InitShader ()
         delete []log_string;
         assert (false);
     }
+
 	glLinkProgram (mShaderProgram);
 	glGetShaderiv (mShaderProgram, GL_LINK_STATUS, &result);
     if (result == GL_FALSE)
@@ -165,6 +162,7 @@ void COceanObject::InitShader ()
     mUniform[UniformType::Mvp] = glGetUniformLocation(mShaderProgram, "mvp");
     mUniform[UniformType::Mv] = glGetUniformLocation(mShaderProgram, "mv");
     mUniform[UniformType::Mvn] = glGetUniformLocation(mShaderProgram, "mvn");
+	mUniform[UniformType::SunDir] = glGetUniformLocation (mShaderProgram, "SunDir");
 
 
 	glDetachShader (mShaderProgram, vs);
@@ -215,6 +213,9 @@ void COceanObject::Render (const CCamera &camera)
     glUniformMatrix4fv(mUniform[UniformType::Mv], 1, GL_FALSE, &camera.GetViewMatrix ()[0][0]);
     
     glUniformMatrix4fv(mUniform[UniformType::Mvn], 1, GL_FALSE, &camera.GetViewNormalMatrix ()[0][0]);
+
+	Math::Vector3 sunDir = mEnvironmentParams.sunDirection;
+	glUniformMatrix4fv (mUniform[UniformType::SunDir], 1, GL_FALSE, &sunDir.x);
 
     glBindVertexArray(mVao);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_INT, nullptr);
