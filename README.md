@@ -25,16 +25,11 @@ mkdir build && cd build && cmake -G "Visual Studio 14 2015 Win64" .. && cd ..
 ```
 mkdir build; cd build; cmake -G "Xcode" ..; cd ..
 ```
-然后打开build/miura.xcode编译运行
+然后打开build/miura.xcodeproj编译运行
 
 ## 技术细节
 
-opengl版本3.3
-glfw版本3.2.1
-glew版本2.0.0
-glm版本0.9.6
-
-WaveSimulator.cpp 实现了“Simulating Ocean Water"一文中的算法。
+WaveSimulator.cpp 实现了“Simulating Ocean Water"一文中的波浪模拟算法。
 
 OceanObject.cpp/OceanShader.cpp 中实现了渲染。
 

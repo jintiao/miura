@@ -1,11 +1,18 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 3.6)
 
 
 # global variables
 set(PROJECT_NAME "miura")
 set(INCLUDE_DIR "")
 set(LINK_LIBS "")
-set(CMAKE_CXX_FLAGS "-std=c++11")
+
+project (${PROJECT_NAME})
+
+
+# OpenGL
+find_package(OpenGL REQUIRED)
+set(INCLUDE_DIR ${INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
+set(LINK_LIBS ${LINK_LIBS} ${OPENGL_gl_LIBRARY})
 
 
 # GLEW
@@ -24,14 +31,7 @@ set(LINK_LIBS ${LINK_LIBS} glfw)
 set(INCLUDE_DIR ${INCLUDE_DIR} 3rd/glm)
 
 
-# OpenGL
-find_package(OpenGL REQUIRED)
-set(INCLUDE_DIR ${INCLUDE_DIR} ${OPENGL_INCLUDE_DIR})
-set(LINK_LIBS ${LINK_LIBS} ${OPENGL_gl_LIBRARY})
-
-
 # miura
-project (${PROJECT_NAME})
 
 ## include
 set(INCLUDE_DIR ${INCLUDE_DIR} src)
@@ -41,7 +41,7 @@ set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/WaveSimulator.cpp src/WaveSimulator.h
 				src/OceanShader.cpp)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
-set(SRC_RENDERING src/main.cpp 
+set(SRC_RENDERING src/main.cpp
 				src/Renderer.cpp src/Renderer.h
 				src/Camera.cpp src/Camera.h)
 SOURCE_GROUP(rendering FILES ${SRC_RENDERING})
@@ -58,7 +58,7 @@ include_directories(${INCLUDE_DIR})
 ## compiler
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -W4 -EHsc -D_USE_MATH_DEFINES -D_WIN")
+    set(CMAKE_CXX_FLAGS "-std=c++11 -W4 -EHsc -D_USE_MATH_DEFINES -D_WIN")
 else()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
+	set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 endif (MSVC)
