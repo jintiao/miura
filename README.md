@@ -8,16 +8,23 @@ real-time ocean simulating, and render using opengl
 ## 运行
 
 使用cmake生成项目文件然后编译运行即可。
+
 请使用支持c++11标准的编译器进行编译。
 
 ### visual studio 2015
+
 在项目目录下执行
-"mkdir build && cd build && cmake -G "Visual Studio 14 2015 Win64" .. && cd .."
+```
+mkdir build && cd build && cmake -G "Visual Studio 14 2015 Win64" .. && cd ..
+```
 然后打开build/miura.sln编译运行
 
 ### xcode
+
 在项目目录下执行
-"mkdir build; cd build; cmake -G "Xcode" ..; cd .."
+```
+mkdir build; cd build; cmake -G "Xcode" ..; cd ..
+```
 然后打开build/miura.xcode编译运行
 
 ## 技术细节
@@ -28,6 +35,7 @@ glew版本2.0.0
 glm版本0.9.6
 
 WaveSimulator.cpp 实现了“Simulating Ocean Water"一文中的算法。
+
 OceanObject.cpp/OceanShader.cpp 中实现了渲染。
 
 ## 参考资料
