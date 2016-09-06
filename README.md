@@ -1,10 +1,9 @@
 # miura
-real-time ocean rendering using opengl
+real-time ocean simulating, and render using opengl
 
 ## 简介
-使用opengl实现实时海洋渲染。
-
-![screenshot.jpg](https://github.com/jintiao/miura/raw/master/ref/screenshot.jpg)
+实时海洋模拟，使用opengl进行渲染。
+![screenshot.jpg](https://github.com/jintiao/miura/raw/master/screenshot.jpg)
 
 ## 运行
 
@@ -22,6 +21,14 @@ real-time ocean rendering using opengl
 然后打开build/miura.xcode编译运行
 
 ## 技术细节
+
+opengl版本3.3
+glfw版本3.2.1
+glew版本2.0.0
+glm版本0.9.6
+
+WaveSimulator.cpp 实现了“Simulating Ocean Water"一文中的算法。
+OceanObject.cpp/OceanShader.cpp 中实现了渲染。
 
 ## 参考资料
 * Jerry Tessendorf, “Simulating Ocean Water”.
