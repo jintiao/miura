@@ -27,6 +27,8 @@ Vector3 Cross (const Vector3 &lhs, const Vector3 &rhs);
 
 float Dot (const Vector2 &lhs, const Vector2 &rhs);
 
+float Dot (const Vector3 &lhs, const Vector3 &rhs);
+
 float Length (const Vector2 &v);
 
 Vector2 Normalize (const Vector2 &v);

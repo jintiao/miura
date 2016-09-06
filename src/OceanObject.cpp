@@ -18,7 +18,8 @@ COceanObject::COceanObject (SEnvironmentParams env) : mEnvironmentParams (env), 
 
 
 void COceanObject::InitBuffer ()
-{    
+{
+	// displacement texture, normal texture
     glGenTextures(TextureType::TextureMax, mTexture);
     for (int i = 0; i < TextureType::TextureMax; i++)
     {
@@ -30,6 +31,8 @@ void COceanObject::InitBuffer ()
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 
+
+	// generate vertex/indice for a plane
 
 	std::vector<Math::Vector3> vertexData;
 	std::vector<Math::Vector2> uvData;
@@ -183,6 +186,7 @@ COceanObject::~COceanObject ()
 
 void COceanObject::Update (float currentTime)
 {
+	// every frame you get the latest displacement/normal texture data from mWaveSimulator
     mWaveSimulator.Update (currentTime * mUpdateRate);
     
     glBindTexture(GL_TEXTURE_2D, mTexture[TextureType::Displacement]);

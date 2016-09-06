@@ -6,7 +6,7 @@
 
 CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam), mOcean (SEnvironmentParams ())
 {
-	glClearColor (0.86f, 0.86f, 0.86f, 0.0f);
+	glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
     glViewport(0, 0, width, height);
     glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);

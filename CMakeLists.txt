@@ -43,11 +43,11 @@ set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/OceanShader.cpp
 				src/Environment.h)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
-set(SRC_RENDERING
+set(SRC_RENDERING src/main.cpp 
 				src/Renderer.cpp src/Renderer.h
 				src/Camera.cpp src/Camera.h)
 SOURCE_GROUP(rendering FILES ${SRC_RENDERING})
-set(SRC_BORING src/main.cpp src/GlobalHeader.h
+set(SRC_BORING src/GlobalHeader.h
 				src/MyMath.cpp src/MyMath.h
 				3rd/glew/src/glew.c)
 SOURCE_GROUP(boring FILES ${SRC_BORING})

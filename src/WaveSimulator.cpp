@@ -136,10 +136,11 @@ void CWaveSimulator::Update (float currentTime)
             mDisplacementData[i].x = mDisplacementFieldX[i].real () * sign;
             mDisplacementData[i].z = mDisplacementFieldZ[i].real () * sign;
 
-            // normalize ((0, 1, 0) - (nx, 0, nz))
+            // [Equation 36], y(0, 1, 0) - e(x,t), then normalize it
             mNormalData[i] = Math::Normalize(Math::Vector3 (-mNormalFieldX[i].real () * sign, 1.0f, -mNormalFieldZ[i].real () * sign));
 		}
 	}
+
 
 	// texture values must be [0,1] in gpu, so we need to normalize it, then rescale it in shader
 	NormalizeData ();
@@ -274,34 +275,28 @@ void CWaveSimulator::FFT1D (std::vector<float> &real, std::vector<float> &imag)
 }
 
 
+// scale displacement/normal data from [-max, max] to [0, 1]
 void CWaveSimulator::NormalizeData ()
-{
+{	
 	float min = std::numeric_limits<float>::max ();
 	float max = std::numeric_limits<float>::min ();
 	for (auto &data : mDisplacementData) {
 		if (data.x > max) max = data.x;
 		if (data.x < min) min = data.x;
+		if (data.y > max) max = data.y;
+		if (data.y < min) min = data.y;
 		if (data.z > max) max = data.z;
 		if (data.z < min) min = data.z;
 	}
-    max = std::max (std::fabs (max), std::fabs (min));
+	max = std::max (std::fabs (max), std::fabs (min));
 	for (auto &data : mDisplacementData) {
 		data.x = (data.x / max + 1.0f) * 0.5f;
+		data.y = (data.y / max + 1.0f) * 0.5f;
 		data.z = (data.z / max + 1.0f) * 0.5f;
 	}
     
-    min = std::numeric_limits<float>::max ();
-	max = std::numeric_limits<float>::min ();
-	for (auto &data : mDisplacementData) {
-		if (data.y > max) max = data.y;
-		if (data.y < min) min = data.y;
-	}
-    max = std::max (std::fabs (max), std::fabs (min));
-	for (auto &data : mDisplacementData) {
-		data.y = (data.y / max + 1.0f) * 0.5f;
-	}
     
-    
+	// normal data already normalized to [-1, 1]
 	for (auto &data : mNormalData) {
 		data.x = (data.x + 1) * 0.5f;
 		data.y = (data.y + 1) * 0.5f;
@@ -310,6 +305,7 @@ void CWaveSimulator::NormalizeData ()
 }
 
 
+// save all data into a gray scale bmp file
 void CWaveSimulator::DebugSave (const char *path)
 {
     std::string dfile (path);

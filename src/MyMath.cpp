@@ -37,6 +37,12 @@ float Dot (const Vector2 &lhs, const Vector2 &rhs)
 }
 
 
+float Dot (const Vector3 &lhs, const Vector3 &rhs)
+{
+	return glm::dot (lhs, rhs);
+}
+
+
 float Length (const Vector2 &v)
 {
     return glm::length (v);
