@@ -4,7 +4,7 @@
 #include "Camera.h"
 
 
-CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam), mOcean (SEnvironmentParams ())
+CRenderer::CRenderer (int width, int height, const CCamera &cam) : mCamera (cam)
 {
 	glClearColor (0.0f, 0.0f, 0.0f, 0.0f);
     glViewport(0, 0, width, height);

@@ -10,7 +10,7 @@
 #include <vector>
 
 
-COceanObject::COceanObject (SEnvironmentParams env) : mEnvironmentParams (env), mWaveSimulator (env)
+COceanObject::COceanObject () : mWaveSimulator (SOceanParams ())
 {
 	InitBuffer ();
 	InitShader ();
@@ -41,13 +41,15 @@ void COceanObject::InitBuffer ()
 	uvData.reserve (mVertexSize * mVertexSize);
 	indiceData.reserve (mVertexSize * mVertexSize * 6);
     
-    float stepUv = 1.0f / (float)mVertexSize;
+    float step = 1.0f / (float)mVertexSize;
 	for (int z = 0; z < mVertexSize; z++)
 	{
 		for (int x = 0; x < mVertexSize; x++)
 		{
-			vertexData.emplace_back (x - mVertexSize * 0.5f, 0, z - mVertexSize * 0.5f);
-            uvData.emplace_back(x * stepUv, z * stepUv);
+			// vertex position is normalized to range ([-1,1], 0, [-1,1]), we'll do the scale in shader to its real position
+			vertexData.emplace_back (((x * step) - 0.5f) * 2.0f, 0, ((z * step) - 0.5f) * 2.0f);
+			// uv range: ([0,1], [0,1])
+            uvData.emplace_back(x * step, z * step);
 		}
 	}
 
@@ -165,7 +167,6 @@ void COceanObject::InitShader ()
     mUniform[UniformType::Mvp] = glGetUniformLocation(mShaderProgram, "mvp");
     mUniform[UniformType::Mv] = glGetUniformLocation(mShaderProgram, "mv");
     mUniform[UniformType::Mvn] = glGetUniformLocation(mShaderProgram, "mvn");
-	mUniform[UniformType::SunDir] = glGetUniformLocation (mShaderProgram, "SunDir");
 
 
 	glDetachShader (mShaderProgram, vs);
@@ -217,9 +218,6 @@ void COceanObject::Render (const CCamera &camera)
     glUniformMatrix4fv(mUniform[UniformType::Mv], 1, GL_FALSE, &camera.GetViewMatrix ()[0][0]);
     
     glUniformMatrix4fv(mUniform[UniformType::Mvn], 1, GL_FALSE, &camera.GetViewNormalMatrix ()[0][0]);
-
-	Math::Vector3 sunDir = mEnvironmentParams.sunDirection;
-	glUniformMatrix4fv (mUniform[UniformType::SunDir], 1, GL_FALSE, &sunDir.x);
 
     glBindVertexArray(mVao);
 	glDrawElements (GL_TRIANGLES, mIndiceCount, GL_UNSIGNED_INT, nullptr);

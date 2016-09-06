@@ -129,7 +129,7 @@ void CWaveSimulator::Update (float currentTime)
 		{
 			int i = IndexLookup (x, y);
             
-            // FFTl produce a pow(-1, x + y)
+            // FFT produce a pow(-1, x + y), we need to correct it
             int sign = PowNeg1 (x + y);
             
 			mDisplacementData[i].y = mHeightField[i].real () * sign;
@@ -140,7 +140,6 @@ void CWaveSimulator::Update (float currentTime)
             mNormalData[i] = Math::Normalize(Math::Vector3 (-mNormalFieldX[i].real () * sign, 1.0f, -mNormalFieldZ[i].real () * sign));
 		}
 	}
-
 
 	// texture values must be [0,1] in gpu, so we need to normalize it, then rescale it in shader
 	NormalizeData ();
@@ -153,10 +152,12 @@ void CWaveSimulator::ComputeFourierField (int x, int y, float t)
 	int i = IndexLookup (x, y);
 	auto &lookup = mDataLUT[i];
 
-    // [Equation 26]
 	float wt = lookup.w * t;
+
     // Euler's formula, exp(ix) = cos(x) + i * sin(x), exp(-ix) = conj (exp(ix))
 	std::complex<float> ep = { std::cosf (wt), std::sinf (wt) };
+
+	// [Equation 26]
 	mHeightField[i] = (lookup.h0 * ep + lookup.h0cn * std::conj (ep)) * lookup.expKDotX;
     
     // [Equation 29]

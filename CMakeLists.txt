@@ -10,7 +10,6 @@ set(CMAKE_CXX_FLAGS "-std=c++11")
 
 # GLEW
 set(INCLUDE_DIR ${INCLUDE_DIR} 3rd/glew/include)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGLEW_STATIC")
 
 
 # GLFW
@@ -40,8 +39,7 @@ set(INCLUDE_DIR ${INCLUDE_DIR} src)
 ## source
 set(SRC_OCEAN 	src/OceanObject.cpp src/OceanObject.h
 				src/WaveSimulator.cpp src/WaveSimulator.h
-				src/OceanShader.cpp
-				src/Environment.h)
+				src/OceanShader.cpp)
 SOURCE_GROUP(ocean FILES ${SRC_OCEAN})
 set(SRC_RENDERING src/main.cpp 
 				src/Renderer.cpp src/Renderer.h

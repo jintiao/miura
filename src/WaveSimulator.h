@@ -1,9 +1,20 @@
 #pragma once
 
-#include "Environment.h"
-
 #include <complex>
 #include <vector>
+
+
+struct SOceanParams
+{
+	Math::Vector2 windDirection;
+	float windSpeed;
+
+	SOceanParams (float angle = 0.0f, float speed = 31.0f) :
+		windDirection (std::cosf (angle), std::sinf (angle)),
+		windSpeed (speed)
+	{
+	}
+};
 
 
 // most calculation is base on [2001, Jerry Tessendorf] Simulating Ocean Water.
@@ -21,6 +32,7 @@ public:
     void DebugSave (const char *path);
 
 private:
+	// these data won't change, so we only need to do the computing once
 	struct CacheData
 	{
 		Math::Vector2 k; // k vector
@@ -39,8 +51,10 @@ private:
 	std::complex<float> ComputeFourierAmplitude0 (const Math::Vector2 &k);
 	float ComputePhillipsSpectrum (const Math::Vector2 &k);
 
-	void ComputeFourierField (int x, int y, float t); // Fourier amplitude/displacement/normal of the wave field realization at time t
+	// Fourier amplitude/displacement/normal of the wave field realization at time t
+	void ComputeFourierField (int x, int y, float t); 
 
+	// reverse fast fourier transform
 	void FFT2D (std::vector<std::complex<float>> &v);
 	void FFT1D (std::vector<float> &real, std::vector<float> &imag);
 
