@@ -55,5 +55,5 @@ private:
 	GLsizei mIndiceCount;
 
 	CWaveSimulator mWaveSimulator;
-	float mUpdateRate = 0.05f;
+	float mUpdateRate = 0.2f;
 };

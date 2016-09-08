@@ -68,15 +68,16 @@ private:
 private:
 	SOceanParams mEnvironmentParams;
 
+	const int mFFTSize = 64; // N/M, must be power of 2
+	const float mWorldSize = 100.0f; // Lx/Lz, meters
+	const float mPhillipsSpectrumConstant = 1.0f;
+
 
 	const float g = 9.81f; // Gravity constant
 	const float pi = (float)M_PI; // 
-	const int mFFTSize = 64; // N/M, must be power of 2
 	const int mFFTSizeHalf = mFFTSize / 2;
 	const int mFFTSizeLog = (int)std::log2 (mFFTSize); // log2(fftsize), use for fft calculation
-	const float mWorldSize = 1.0f; // Lx/Lz, meters
-	const float mPhillipsSpectrumConstant = 1.0f;
-	const float mMinimalWaveScale = 0.001f; // waves length way smaller than the world size should be suppressed
+	const float mMinimalWaveScale = mWorldSize * 0.001f; // waves length way smaller than the world size should be suppressed
 
 
 	std::vector<CacheData> mDataLUT; // pre-computed data we need to use in every frame

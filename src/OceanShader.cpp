@@ -29,7 +29,7 @@ vec4 worldVertex = vec4 (vertexPos.x * vertexScale, vertexPos.y, vertexPos.z * v
 float waveHeight = 30.0;
 
 // use dispLambda to adjust horizontal displacement, if you set this as a positive number, the wave will be flatten
-float dispLambda = -1.0;
+float dispLambda = -2.0;
 
 // scale the displacement data to [-1, 1]
 vec3 disp = textureLod (DisplacementTexture, vertexUv, 0.0).xyz * 2 - 1;
